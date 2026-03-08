@@ -37,11 +37,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/manzi/appbun.git"
+    "url": "git+https://github.com/bigmacfive/appbun.git"
   },
-  "homepage": "https://github.com/manzi/appbun#readme",
+  "homepage": "https://github.com/bigmacfive/appbun#readme",
   "bugs": {
-    "url": "https://github.com/manzi/appbun/issues"
+    "url": "https://github.com/bigmacfive/appbun/issues"
   },
   "publishConfig": {
     "access": "public"

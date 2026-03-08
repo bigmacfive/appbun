@@ -193,7 +193,7 @@ function generatedReadme(config: ResolvedAppConfig): string {
 
   return `# ${config.name}
 
-Generated with [appbun](https://github.com/manzi/appbun). This project wraps ${config.url} in an Electrobun desktop shell.
+Generated with [appbun](https://github.com/bigmacfive/appbun). This project wraps ${config.url} in an Electrobun desktop shell.
 
 ## Commands
 
