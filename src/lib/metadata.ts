@@ -1,16 +1,22 @@
 import * as cheerio from "cheerio";
 
 import type { IconCandidate, IconFormat, SiteMetadata } from "./types.js";
-import { normalizeHexColor } from "./utils.js";
+import { deriveNameFromUrl, normalizeHexColor } from "./utils.js";
 
-const USER_AGENT = "appbun/0.3.1 (+https://github.com/bigmacfive/appbun)";
+const USER_AGENT = [
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+  "AppleWebKit/537.36 (KHTML, like Gecko)",
+  "Chrome/133.0.0.0 Safari/537.36",
+  "appbun/0.3.2 (+https://github.com/bigmacfive/appbun)"
+].join(" ");
 
 export async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
   const url = new URL(rawUrl).toString();
   const response = await fetch(url, {
     headers: {
       "user-agent": USER_AGENT,
-      accept: "text/html,application/xhtml+xml"
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "accept-language": "en-US,en;q=0.9"
     }
   });
 
@@ -52,6 +58,16 @@ export async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
     themeColor,
     sourceUrl: url,
     iconCandidates,
+  };
+}
+
+export function createFallbackSiteMetadata(rawUrl: string): SiteMetadata {
+  const url = new URL(rawUrl).toString();
+  return {
+    title: deriveNameFromUrl(url),
+    description: `Desktop wrapper for ${new URL(url).hostname}`,
+    sourceUrl: url,
+    iconCandidates: defaultFallbackIcons(url),
   };
 }
 

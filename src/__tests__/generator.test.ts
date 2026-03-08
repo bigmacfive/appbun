@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 
 import { renderTemplateFiles, resolveAppConfig, writeProject } from "../lib/generator.js";
+import { createFallbackSiteMetadata } from "../lib/metadata.js";
 import { normalizeHexColor, deriveIdentifier, slugify } from "../lib/utils.js";
 
 const tempDirs: string[] = [];
@@ -42,6 +43,13 @@ describe("utils", () => {
 });
 
 describe("generator", () => {
+  test("createFallbackSiteMetadata derives defaults from url", () => {
+    const metadata = createFallbackSiteMetadata("https://chat.openai.com");
+    expect(metadata.title).toBe("Chat");
+    expect(metadata.description).toContain("chat.openai.com");
+    expect(metadata.iconCandidates.length).toBeGreaterThan(0);
+  });
+
   test("resolveAppConfig prefers user input over fetched metadata", () => {
     const config = resolveAppConfig(
       "https://linear.app",

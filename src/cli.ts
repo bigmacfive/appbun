@@ -5,7 +5,7 @@ import pc from "picocolors";
 import { Command } from "commander";
 
 import { writeProject, installDependencies, resolveAppConfig } from "./lib/generator.js";
-import { fetchSiteMetadata } from "./lib/metadata.js";
+import { createFallbackSiteMetadata, fetchSiteMetadata } from "./lib/metadata.js";
 import type { CreateCommandOptions } from "./lib/types.js";
 
 const defaultOptions: CreateCommandOptions = {
@@ -25,7 +25,7 @@ const program = new Command();
 program
   .name("appbun")
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
-  .version("0.3.1");
+  .version("0.3.2");
 
 program
   .command("create")
@@ -45,7 +45,16 @@ program
   .action(async (url: string, options: CreateCommandOptions) => {
     try {
       validatePackageManager(options.packageManager);
-      const metadata = await fetchSiteMetadata(url);
+      let usedFallbackMetadata = false;
+      const metadata = await fetchSiteMetadata(url).catch((error) => {
+        usedFallbackMetadata = true;
+        if (!options.quiet) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.log(pc.bold(pc.yellow("warning")), `metadata fetch failed, continuing with URL defaults`);
+          console.log(`  reason: ${message}`);
+        }
+        return createFallbackSiteMetadata(url);
+      });
       const config = resolveAppConfig(url, { ...defaultOptions, ...options }, metadata);
 
       if (!options.quiet) {
@@ -54,6 +63,7 @@ program
         console.log(`  description: ${metadata.description ?? "(not found)"}`);
         console.log(`  theme color: ${metadata.themeColor ?? "(not found)"}`);
         console.log(`  icon candidates: ${metadata.iconCandidates.length}`);
+        console.log(`  metadata mode: ${usedFallbackMetadata ? "fallback" : "fetched"}`);
       }
 
       if (options.showConfig) {
