@@ -384,14 +384,8 @@ function generatedMainviewHtml(config: ResolvedAppConfig): string {
 <body>
   <div class="shell">
     <header class="topbar electrobun-webkit-app-region-drag">
-      <div class="brand">
-        <img id="site-icon" class="site-icon" src="views://mainview/icon.png" alt="" />
-        <div class="brand-copy">
-          <strong id="site-name">${escapeHtml(config.name)}</strong>
-          <span id="site-origin">${escapeHtml(config.origin.replace(/^https?:\/\//, ""))}</span>
-        </div>
-      </div>
-      <div class="header-glow" aria-hidden="true"></div>
+      <img id="site-icon" class="site-icon" src="views://mainview/icon.png" alt="" />
+      <strong id="site-name">${escapeHtml(config.name)}</strong>
     </header>
     <main class="stage">
       <electrobun-webview id="remote-app" class="remote-app"></electrobun-webview>
@@ -405,11 +399,9 @@ function generatedMainviewHtml(config: ResolvedAppConfig): string {
 function generatedMainviewCss(config: ResolvedAppConfig): string {
   return `:root {
   color-scheme: light;
-  --shell-bg: color-mix(in srgb, ${config.themeColor} 10%, #f5f5f2);
-  --shell-topbar: color-mix(in srgb, ${config.themeColor} 12%, rgba(255, 255, 255, 0.84));
-  --shell-border: color-mix(in srgb, ${config.themeColor} 22%, rgba(24, 24, 27, 0.10));
-  --shell-ink: #141414;
-  --shell-muted: rgba(20, 20, 20, 0.58);
+  --shell-ink: rgba(22, 22, 24, 0.92);
+  --shell-chip: rgba(250, 250, 252, 0.66);
+  --shell-chip-border: rgba(15, 23, 42, 0.10);
 }
 
 * {
@@ -422,10 +414,6 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, ${config.themeColor} 20%, white) 0%, transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--shell-bg));
-  color: var(--shell-ink);
   font-family: "SF Pro Text", "Segoe UI", sans-serif;
 }
 
@@ -437,68 +425,42 @@ body {
 
 .topbar {
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 72px;
+  top: 8px;
+  left: 78px;
+  max-width: min(320px, calc(100vw - 120px));
+  height: 28px;
   display: flex;
   align-items: center;
-  padding: 18px 22px 16px 84px;
-  border-bottom: 1px solid var(--shell-border);
-  background: var(--shell-topbar);
-  backdrop-filter: blur(24px) saturate(1.15);
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--shell-chip);
+  border: 1px solid var(--shell-chip-border);
+  backdrop-filter: blur(20px) saturate(1.05);
   z-index: 2;
-  overflow: hidden;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
 }
 
 .site-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.14);
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
   flex: 0 0 auto;
 }
 
-.brand-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 #site-name {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 12.5px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--shell-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-#site-origin {
-  font-size: 12px;
-  color: var(--shell-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.header-glow {
-  position: absolute;
-  inset: -24px -120px auto auto;
-  width: 240px;
-  height: 120px;
-  background: radial-gradient(circle, color-mix(in srgb, ${config.themeColor} 24%, white) 0%, transparent 70%);
-  pointer-events: none;
 }
 
 .stage {
   position: absolute;
-  inset: 72px 0 0 0;
+  inset: 0;
 }
 
 .remote-app {
@@ -506,12 +468,13 @@ body {
   width: 100%;
   height: 100%;
   border: 0;
-  background: white;
+  background: transparent;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .topbar {
-    padding-left: 72px;
+    left: 68px;
+    max-width: calc(100vw - 96px);
   }
 }
 `;
@@ -536,13 +499,11 @@ void electroview;
 
 const remoteApp = document.getElementById("remote-app") as HTMLElement & { src?: string };
 const siteName = document.getElementById("site-name");
-const siteOrigin = document.getElementById("site-origin");
 const siteIcon = document.getElementById("site-icon") as HTMLImageElement | null;
 
 document.title = APP_CONFIG.title;
 document.documentElement.style.setProperty("--appbun-accent", APP_CONFIG.themeColor);
 siteName && (siteName.textContent = APP_CONFIG.name);
-siteOrigin && (siteOrigin.textContent = APP_CONFIG.origin.replace(/^https?:\\/\\//, ""));
 
 if (remoteApp) {
   remoteApp.src = APP_CONFIG.url;

@@ -7,7 +7,7 @@ const USER_AGENT = [
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
   "AppleWebKit/537.36 (KHTML, like Gecko)",
   "Chrome/133.0.0.0 Safari/537.36",
-  "appbun/0.4.0 (+https://github.com/bigmacfive/appbun)"
+  "appbun/0.4.1 (+https://github.com/bigmacfive/appbun)"
 ].join(" ");
 
 export async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
@@ -78,9 +78,17 @@ function collectLinkIcons($: cheerio.CheerioAPI, baseUrl: string): IconCandidate
     if (!rel.includes("icon")) {
       return;
     }
+    if (rel.includes("mask-icon")) {
+      return;
+    }
 
     const href = $(element).attr("href");
     if (!href) {
+      return;
+    }
+
+    const purpose = $(element).attr("purpose") || undefined;
+    if (purpose?.trim() === "monochrome") {
       return;
     }
 
@@ -88,7 +96,7 @@ function collectLinkIcons($: cheerio.CheerioAPI, baseUrl: string): IconCandidate
       url: resolveUrl(baseUrl, href),
       rel,
       sizes: parseSizes($(element).attr("sizes")),
-      purpose: $(element).attr("purpose") || undefined,
+      purpose,
       mimeType: $(element).attr("type") || undefined,
       format: detectIconFormat($(element).attr("type"), href),
     });
@@ -116,7 +124,7 @@ async function collectManifestIcons($: cheerio.CheerioAPI, baseUrl: string): Pro
 
     const manifest = await response.json() as { icons?: Array<{ src?: string; sizes?: string; purpose?: string; type?: string }> };
     return (manifest.icons || [])
-      .filter((icon) => Boolean(icon.src))
+      .filter((icon) => Boolean(icon.src) && icon.purpose !== "monochrome")
       .map((icon) => ({
         url: resolveUrl(manifestUrl, icon.src!),
         rel: "manifest",

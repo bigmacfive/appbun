@@ -33,7 +33,7 @@ const program = new Command();
 program
   .name("appbun")
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
-  .version("0.4.0");
+  .version("0.4.1");
 
 program
   .command("create")

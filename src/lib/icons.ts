@@ -22,6 +22,7 @@ const ICONSET_SPECS = [
 ] as const;
 
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256] as const;
+const MIN_USABLE_ICON_SIZE = 64;
 
 interface LoadedIcon {
   format: "png" | "svg";
@@ -91,7 +92,10 @@ async function loadBestIcon(candidates: IconCandidate[]): Promise<LoadedIcon | u
 
     if (format === "png") {
       try {
-        PNG.sync.read(buffer);
+        const png = PNG.sync.read(buffer);
+        if (Math.min(png.width, png.height) < MIN_USABLE_ICON_SIZE) {
+          continue;
+        }
         return {
           format,
           sourceUrl: candidate.url,
@@ -106,7 +110,7 @@ async function loadBestIcon(candidates: IconCandidate[]): Promise<LoadedIcon | u
       try {
         const parsed = await parseICO(buffer, "image/png");
         const largest = [...parsed].sort((left, right) => right.width - left.width)[0];
-        if (!largest) {
+        if (!largest || Math.min(largest.width, largest.height) < MIN_USABLE_ICON_SIZE) {
           continue;
         }
         return {
@@ -223,8 +227,14 @@ function scoreCandidate(candidate: IconCandidate): number {
   if (candidate.format === "ico") {
     score += 40;
   }
+  if (largestSize < MIN_USABLE_ICON_SIZE && candidate.format !== "svg") {
+    score -= 300;
+  }
   if (rel.includes("fallback")) {
     score -= 40;
+  }
+  if (candidate.purpose?.includes("maskable")) {
+    score += 25;
   }
 
   return score;
