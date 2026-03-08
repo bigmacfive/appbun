@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "appbun": "./bin/appbun.js"
+    "appbun": "bin/appbun.js"
   },
   "files": [
     "bin",
