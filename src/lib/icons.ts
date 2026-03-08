@@ -1,10 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { parseICO } from "icojs";
+import { PNG } from "pngjs";
 import { Resvg } from "@resvg/resvg-js";
 import pngToIco from "png-to-ico";
 
-import { getInitials, shiftHexColor } from "./utils.js";
+import type { IconCandidate, IconFormat, PreparedIconAssets, SiteMetadata } from "./types.js";
 
 const ICONSET_SPECS = [
   { file: "icon_16x16.png", size: 16 },
@@ -21,70 +23,220 @@ const ICONSET_SPECS = [
 
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256] as const;
 
-export async function generateIconAssets(targetDir: string, appName: string, themeColor: string): Promise<void> {
+interface LoadedIcon {
+  format: "png" | "svg";
+  sourceUrl: string;
+  rasterPng?: Buffer;
+  svg?: string;
+  originalIco?: Buffer;
+}
+
+export async function prepareIconAssets(targetDir: string, metadata: SiteMetadata): Promise<PreparedIconAssets> {
   const assetsDir = join(targetDir, "assets");
   const iconsetDir = join(targetDir, "icon.iconset");
   await mkdir(assetsDir, { recursive: true });
-  await mkdir(iconsetDir, { recursive: true });
 
-  const svg = createIconSvg(appName, themeColor);
-  await writeFile(join(assetsDir, "icon.svg"), svg, "utf8");
-
-  const iconBuffers = new Map<number, Uint8Array>();
-  for (const spec of ICONSET_SPECS) {
-    const buffer = renderSvgToPng(svg, spec.size);
-    iconBuffers.set(spec.size, buffer);
-    await writeFile(join(iconsetDir, spec.file), buffer);
+  const loadedIcon = await loadBestIcon(metadata.iconCandidates);
+  if (!loadedIcon) {
+    return {};
   }
 
-  await writeFile(join(assetsDir, "icon.png"), iconBuffers.get(512) ?? renderSvgToPng(svg, 512));
+  const iconBuffers = new Map<number, Buffer>();
+  for (const spec of ICONSET_SPECS) {
+    const buffer = renderIconToPng(loadedIcon, spec.size);
+    iconBuffers.set(spec.size, buffer);
+  }
 
-  const icoBuffer = await pngToIco(
-    ICO_SIZES.map((size) => Buffer.from(iconBuffers.get(size) ?? renderSvgToPng(svg, size))),
+  await mkdir(iconsetDir, { recursive: true });
+  for (const spec of ICONSET_SPECS) {
+    const buffer = iconBuffers.get(spec.size);
+    if (buffer) {
+      await writeFile(join(iconsetDir, spec.file), buffer);
+    }
+  }
+
+  const pngPath = join("assets", "icon.png");
+  await writeFile(join(targetDir, pngPath), iconBuffers.get(512) ?? renderIconToPng(loadedIcon, 512));
+
+  const icoPath = join("assets", "icon.ico");
+  const icoBuffer = loadedIcon.originalIco ?? await pngToIco(
+    ICO_SIZES.map((size) => Buffer.from(iconBuffers.get(size) ?? renderIconToPng(loadedIcon, size))),
   );
-  await writeFile(join(assetsDir, "icon.ico"), icoBuffer);
+  await writeFile(join(targetDir, icoPath), icoBuffer);
+
+  return {
+    png: pngPath,
+    ico: icoPath,
+    macIconset: "icon.iconset",
+    sourceUrl: loadedIcon.sourceUrl,
+  };
 }
 
-function renderSvgToPng(svg: string, size: number): Uint8Array {
-  const rendered = new Resvg(svg, {
-    fitTo: {
-      mode: "width",
-      value: size,
-    },
-  }).render();
+async function loadBestIcon(candidates: IconCandidate[]): Promise<LoadedIcon | undefined> {
+  const sortedCandidates = [...candidates].sort((left, right) => scoreCandidate(right) - scoreCandidate(left));
+  for (const candidate of sortedCandidates) {
+    const buffer = await fetchBuffer(candidate.url).catch(() => undefined);
+    if (!buffer || buffer.byteLength === 0) {
+      continue;
+    }
 
-  return rendered.asPng();
+    const format = detectFormat(candidate, buffer);
+    if (format === "svg") {
+      return {
+        format,
+        sourceUrl: candidate.url,
+        svg: buffer.toString("utf8"),
+      };
+    }
+
+    if (format === "png") {
+      try {
+        PNG.sync.read(buffer);
+        return {
+          format,
+          sourceUrl: candidate.url,
+          rasterPng: buffer,
+        };
+      } catch {
+        continue;
+      }
+    }
+
+    if (format === "ico") {
+      try {
+        const parsed = await parseICO(buffer, "image/png");
+        const largest = [...parsed].sort((left, right) => right.width - left.width)[0];
+        if (!largest) {
+          continue;
+        }
+        return {
+          format: "png",
+          sourceUrl: candidate.url,
+          rasterPng: Buffer.from(largest.buffer),
+          originalIco: buffer,
+        };
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  return undefined;
 }
 
-function createIconSvg(appName: string, themeColor: string): string {
-  const darkColor = shiftHexColor(themeColor, -28);
-  const lightColor = shiftHexColor(themeColor, 42);
-  const initials = getInitials(appName);
+function renderIconToPng(icon: LoadedIcon, size: number): Buffer {
+  if (icon.svg) {
+    return Buffer.from(new Resvg(icon.svg, {
+      fitTo: {
+        mode: "width",
+        value: size,
+      },
+    }).render().asPng());
+  }
 
-  return `
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="orb" x1="96" y1="64" x2="944" y2="960" gradientUnits="userSpaceOnUse">
-      <stop stop-color="${lightColor}" />
-      <stop offset="1" stop-color="${darkColor}" />
-    </linearGradient>
-    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 228) rotate(46.8) scale(520 520)">
-      <stop stop-color="#FFFFFF" stop-opacity="0.55" />
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
-    </radialGradient>
-    <filter id="shadow" x="120" y="164" width="784" height="784" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="40" stdDeviation="44" flood-color="#050816" flood-opacity="0.28"/>
-    </filter>
-  </defs>
-  <rect width="1024" height="1024" rx="240" fill="#0D1526" />
-  <rect x="92" y="92" width="840" height="840" rx="216" fill="url(#orb)" />
-  <rect x="92" y="92" width="840" height="840" rx="216" fill="url(#glow)" />
-  <g filter="url(#shadow)">
-    <path d="M256 332C256 289.6 290.4 255 332.8 255H691.2C733.6 255 768 289.6 768 332V690.4C768 732.8 733.6 767.2 691.2 767.2H332.8C290.4 767.2 256 732.8 256 690.4V332Z" fill="#07101D" fill-opacity="0.26"/>
-    <path d="M320 384C320 348.7 348.7 320 384 320H640C675.3 320 704 348.7 704 384V640C704 675.3 675.3 704 640 704H384C348.7 704 320 675.3 320 640V384Z" fill="#0A1222" fill-opacity="0.24"/>
-  </g>
-  <circle cx="756" cy="262" r="88" fill="#F3F7FF" fill-opacity="0.16" />
-  <circle cx="250" cy="792" r="120" fill="#04101E" fill-opacity="0.2" />
-  <text x="512" y="580" text-anchor="middle" font-size="288" font-weight="700" font-family="Avenir Next, Inter, Arial, sans-serif" fill="#F8FBFF">${initials}</text>
-</svg>`.trimStart();
+  if (!icon.rasterPng) {
+    throw new Error("Icon source did not contain raster or SVG data");
+  }
+
+  return resizePng(icon.rasterPng, size);
+}
+
+function resizePng(buffer: Buffer, size: number): Buffer {
+  const source = PNG.sync.read(buffer);
+  const destination = new PNG({ width: size, height: size, colorType: 6 });
+  const scale = Math.min(size / source.width, size / source.height);
+  const targetWidth = Math.max(1, Math.round(source.width * scale));
+  const targetHeight = Math.max(1, Math.round(source.height * scale));
+  const offsetX = Math.floor((size - targetWidth) / 2);
+  const offsetY = Math.floor((size - targetHeight) / 2);
+
+  for (let y = 0; y < targetHeight; y++) {
+    for (let x = 0; x < targetWidth; x++) {
+      const sourceX = Math.min(source.width - 1, Math.floor(x / scale));
+      const sourceY = Math.min(source.height - 1, Math.floor(y / scale));
+      const sourceIndex = (sourceY * source.width + sourceX) << 2;
+      const destinationIndex = ((y + offsetY) * size + (x + offsetX)) << 2;
+      destination.data[destinationIndex] = source.data[sourceIndex] ?? 0;
+      destination.data[destinationIndex + 1] = source.data[sourceIndex + 1] ?? 0;
+      destination.data[destinationIndex + 2] = source.data[sourceIndex + 2] ?? 0;
+      destination.data[destinationIndex + 3] = source.data[sourceIndex + 3] ?? 0;
+    }
+  }
+
+  return PNG.sync.write(destination);
+}
+
+async function fetchBuffer(url: string): Promise<Buffer> {
+  if (url.startsWith("data:")) {
+    return decodeDataUrl(url);
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      accept: "image/*,*/*;q=0.8",
+      "user-agent": "appbun/0.1.0"
+    }
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch icon ${url}: ${response.status}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+function detectFormat(candidate: IconCandidate, buffer: Buffer): IconFormat | undefined {
+  if (candidate.format) {
+    return candidate.format;
+  }
+
+  const trimmed = buffer.subarray(0, 64).toString("utf8").trimStart().toLowerCase();
+  if (trimmed.startsWith("<svg") || trimmed.includes("<svg")) {
+    return "svg";
+  }
+  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return "png";
+  }
+  if (buffer.subarray(0, 4).equals(Buffer.from([0x00, 0x00, 0x01, 0x00]))) {
+    return "ico";
+  }
+  return undefined;
+}
+
+function scoreCandidate(candidate: IconCandidate): number {
+  const largestSize = candidate.sizes.length > 0 ? Math.max(...candidate.sizes) : 16;
+  const rel = candidate.rel.toLowerCase();
+  let score = largestSize;
+
+  if (rel.includes("apple-touch-icon")) {
+    score += 500;
+  } else if (rel.includes("manifest")) {
+    score += 350;
+  } else if (rel.includes("icon")) {
+    score += 250;
+  }
+
+  if (candidate.format === "svg") {
+    score += 120;
+  }
+  if (candidate.format === "png") {
+    score += 80;
+  }
+  if (candidate.format === "ico") {
+    score += 40;
+  }
+  if (rel.includes("fallback")) {
+    score -= 40;
+  }
+
+  return score;
+}
+
+function decodeDataUrl(url: string): Buffer {
+  const match = url.match(/^data:([^;,]+)?(;base64)?,(.*)$/);
+  if (!match) {
+    throw new Error("Invalid data URL");
+  }
+
+  const isBase64 = Boolean(match[2]);
+  const payload = match[3] || "";
+  return isBase64 ? Buffer.from(payload, "base64") : Buffer.from(decodeURIComponent(payload), "utf8");
 }

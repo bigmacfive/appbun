@@ -6,8 +6,9 @@
 
 - Fetches metadata from the target site
 - Derives a sensible app name, description, identifier, and theme color
-- Generates an Electrobun app that opens the remote URL in a sandboxed webview
-- Creates cross-platform icon assets for macOS, Windows, and Linux
+- Pulls favicon, apple-touch-icon, and manifest icons from the target site when available
+- Generates an Electrobun shell that wraps the remote URL in an embedded webview
+- Uses a unified shell header so macOS traffic lights feel integrated with the app content
 - Produces a project that is ready for `bun install`, `npm install`, and `electrobun build`
 
 ## Install
@@ -39,10 +40,11 @@ appbun create https://calendar.google.com \
 
 The generated project includes:
 
-- `src/bun/index.ts`: the Electrobun entrypoint
+- `src/bun/index.ts`: the Electrobun window entrypoint
+- `src/mainview/`: the local shell header plus embedded `electrobun-webview`
 - `electrobun.config.ts`: metadata and packaging configuration
-- `assets/icon.png`, `assets/icon.ico`, `assets/icon.svg`
-- `icon.iconset/`: a macOS iconset generated from the same theme color
+- `assets/icon.png`, `assets/icon.ico`
+- `icon.iconset/`: a macOS iconset derived from the site icon when available
 
 ## Local development
 

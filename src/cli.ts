@@ -25,7 +25,7 @@ const program = new Command();
 program
   .name("appbun")
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
-  .version("0.1.0");
+  .version("0.2.0");
 
 program
   .command("create")
@@ -35,7 +35,7 @@ program
   .option("--title <title>", "desktop window title")
   .option("--description <description>", "package description")
   .option("--identifier <identifier>", "bundle identifier, for example com.example.app")
-  .option("--theme-color <hex>", "base icon color, for example #2563eb")
+  .option("--theme-color <hex>", "shell accent color, for example #2563eb")
   .option("--width <number>", "window width", parseInteger, defaultOptions.width)
   .option("--height <number>", "window height", parseInteger, defaultOptions.height)
   .option("--package-manager <pm>", "install command for the generated app: bun or npm", defaultOptions.packageManager)
@@ -53,6 +53,7 @@ program
         console.log(`  title: ${metadata.title ?? "(not found)"}`);
         console.log(`  description: ${metadata.description ?? "(not found)"}`);
         console.log(`  theme color: ${metadata.themeColor ?? "(not found)"}`);
+        console.log(`  icon candidates: ${metadata.iconCandidates.length}`);
       }
 
       if (options.showConfig) {
@@ -60,10 +61,11 @@ program
         console.log(JSON.stringify(config, null, 2));
       }
 
-      await writeProject(config);
+      const preparedIcons = await writeProject(config, metadata);
 
       if (!options.quiet) {
         console.log(pc.bold(pc.green("created")), config.outDir);
+        console.log(`  icon source: ${preparedIcons.sourceUrl ?? "(not resolved)"}`);
       }
 
       if (options.install) {

@@ -1,5 +1,7 @@
 export type PackageManager = "bun" | "npm";
 
+export type IconFormat = "png" | "svg" | "ico";
+
 export interface CreateCommandOptions {
   name?: string;
   outDir?: string;
@@ -20,6 +22,23 @@ export interface SiteMetadata {
   description?: string;
   themeColor?: string;
   sourceUrl: string;
+  iconCandidates: IconCandidate[];
+}
+
+export interface IconCandidate {
+  url: string;
+  rel: string;
+  format?: IconFormat;
+  sizes: number[];
+  purpose?: string;
+  mimeType?: string;
+}
+
+export interface PreparedIconAssets {
+  png?: string;
+  ico?: string;
+  macIconset?: string;
+  sourceUrl?: string;
 }
 
 export interface ResolvedAppConfig {

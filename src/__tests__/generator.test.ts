@@ -8,6 +8,12 @@ import { renderTemplateFiles, resolveAppConfig, writeProject } from "../lib/gene
 import { normalizeHexColor, deriveIdentifier, slugify } from "../lib/utils.js";
 
 const tempDirs: string[] = [];
+const svgIconDataUrl = `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="16" fill="#2255aa" />
+    <circle cx="32" cy="32" r="18" fill="#ffffff" />
+  </svg>`,
+)}`;
 
 afterEach(() => {
   while (tempDirs.length > 0) {
@@ -54,6 +60,7 @@ describe("generator", () => {
         description: "Issue tracker",
         themeColor: "#654321",
         sourceUrl: "https://linear.app",
+        iconCandidates: [],
       },
     );
 
@@ -78,11 +85,13 @@ describe("generator", () => {
         description: "Example app",
         themeColor: "#336699",
         sourceUrl: "https://example.com",
+        iconCandidates: [],
       },
     );
 
-    const files = renderTemplateFiles(config);
+    const files = renderTemplateFiles(config, {});
     expect(files.some((file) => file.path === "src/bun/index.ts")).toBe(true);
+    expect(files.some((file) => file.path === "src/mainview/index.ts")).toBe(true);
   });
 
   test("writeProject creates config and icon files", async () => {
@@ -105,14 +114,37 @@ describe("generator", () => {
         description: "Example app",
         themeColor: "#2255aa",
         sourceUrl: "https://example.com",
+        iconCandidates: [
+          {
+            url: svgIconDataUrl,
+            rel: "apple-touch-icon",
+            format: "svg",
+            sizes: [512],
+          },
+        ],
       },
     );
 
-    await writeProject(config);
+    const icons = await writeProject(config, {
+      title: "Example",
+      description: "Example app",
+      themeColor: "#2255aa",
+      sourceUrl: "https://example.com",
+      iconCandidates: [
+        {
+          url: svgIconDataUrl,
+          rel: "apple-touch-icon",
+          format: "svg",
+          sizes: [512],
+        },
+      ],
+    });
 
     expect(existsSync(join(config.outDir, "electrobun.config.ts"))).toBe(true);
     expect(existsSync(join(config.outDir, "assets", "icon.ico"))).toBe(true);
     expect(existsSync(join(config.outDir, "icon.iconset", "icon_512x512.png"))).toBe(true);
-    expect(readFileSync(join(config.outDir, "src", "bun", "index.ts"), "utf8")).toContain("https://example.com/");
+    expect(readFileSync(join(config.outDir, "src", "bun", "index.ts"), "utf8")).toContain("views://mainview/index.html");
+    expect(readFileSync(join(config.outDir, "src", "mainview", "index.ts"), "utf8")).toContain("https://example.com/");
+    expect(icons.sourceUrl).toBe(svgIconDataUrl);
   });
 });
