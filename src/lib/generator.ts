@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import type {
@@ -74,6 +75,45 @@ export function installDependencies(config: ResolvedAppConfig): void {
 
   if (result.status !== 0) {
     throw new Error(`${command} install failed with exit code ${result.status ?? "unknown"}`);
+  }
+}
+
+export function runPackageScript(config: ResolvedAppConfig, scriptName: string): void {
+  const command = config.packageManager;
+  const args = config.packageManager === "bun" ? ["run", scriptName] : ["run", scriptName];
+  const result = spawnSync(command, args, {
+    cwd: config.outDir,
+    stdio: "inherit",
+  });
+
+  if (result.status !== 0) {
+    throw new Error(`${command} run ${scriptName} failed with exit code ${result.status ?? "unknown"}`);
+  }
+}
+
+export function findLatestDmg(config: ResolvedAppConfig): string | undefined {
+  const dmgDir = resolve(config.outDir, "build", "dmg");
+  try {
+    const entries = readdirSync(dmgDir)
+      .filter((entry) => entry.endsWith(".dmg"))
+      .sort();
+    const latest = entries.at(-1);
+    return latest ? join(dmgDir, latest) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function openFile(targetPath: string): void {
+  const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+  const args = process.platform === "win32" ? [targetPath] : [targetPath];
+  const result = spawnSync(command, args, {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+
+  if (result.status !== 0) {
+    throw new Error(`Failed to open ${targetPath}`);
   }
 }
 

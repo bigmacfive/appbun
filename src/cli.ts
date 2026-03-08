@@ -4,7 +4,14 @@ import process from "node:process";
 import pc from "picocolors";
 import { Command } from "commander";
 
-import { writeProject, installDependencies, resolveAppConfig } from "./lib/generator.js";
+import {
+  findLatestDmg,
+  installDependencies,
+  openFile,
+  resolveAppConfig,
+  runPackageScript,
+  writeProject,
+} from "./lib/generator.js";
 import { createFallbackSiteMetadata, fetchSiteMetadata } from "./lib/metadata.js";
 import type { CreateCommandOptions } from "./lib/types.js";
 
@@ -13,6 +20,7 @@ const defaultOptions: CreateCommandOptions = {
   height: 900,
   packageManager: "bun",
   install: false,
+  dmg: false,
   showConfig: false,
   quiet: false,
 };
@@ -25,7 +33,7 @@ const program = new Command();
 program
   .name("appbun")
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
-  .version("0.3.2");
+  .version("0.4.0");
 
 program
   .command("create")
@@ -40,6 +48,7 @@ program
   .option("--height <number>", "window height", parseInteger, defaultOptions.height)
   .option("--package-manager <pm>", "install command for the generated app: bun or npm", defaultOptions.packageManager)
   .option("--install", "install generated app dependencies")
+  .option("--dmg", "on macOS: install dependencies, build a DMG, and open it")
   .option("--show-config", "print resolved config before writing files")
   .option("--quiet", "reduce output")
   .action(async (url: string, options: CreateCommandOptions) => {
@@ -78,18 +87,42 @@ program
         console.log(`  icon source: ${preparedIcons.sourceUrl ?? "(not resolved)"}`);
       }
 
-      if (options.install) {
+      if (options.install || options.dmg) {
         if (!options.quiet) {
           console.log(pc.bold(pc.cyan("installing")), `dependencies with ${config.packageManager}`);
         }
         installDependencies(config);
       }
 
-      console.log(pc.bold(pc.green("next steps")));
-      console.log(`  cd ${config.outDir}`);
-      console.log(`  ${config.packageManager} install`);
-      console.log(`  ${config.packageManager} run dev`);
-      console.log(`  ${config.packageManager} run build`);
+      if (options.dmg) {
+        if (process.platform !== "darwin") {
+          throw new Error("--dmg is only supported on macOS");
+        }
+
+        if (!options.quiet) {
+          console.log(pc.bold(pc.cyan("packaging")), "building DMG");
+        }
+
+        runPackageScript(config, "build:dmg");
+        const dmgPath = findLatestDmg(config);
+        if (!dmgPath) {
+          throw new Error("DMG build completed but no .dmg file was found");
+        }
+
+        if (!options.quiet) {
+          console.log(pc.bold(pc.green("dmg")), dmgPath);
+        }
+
+        openFile(dmgPath);
+      }
+
+      if (!options.dmg) {
+        console.log(pc.bold(pc.green("next steps")));
+        console.log(`  cd ${config.outDir}`);
+        console.log(`  ${config.packageManager} install`);
+        console.log(`  ${config.packageManager} run dev`);
+        console.log(`  ${config.packageManager} run build`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(pc.bold(pc.red("error")), message);
@@ -104,6 +137,7 @@ Examples:
   $ appbun create https://calendar.google.com --name Calendar --out-dir ./calendar-app
   $ appbun https://linear.app --package-manager npm --install
   $ appbun create https://chat.openai.com --theme-color #10a37f --width 1600 --height 1000
+  $ appbun https://chat.openai.com --name ChatGPT --dmg
 `,
 );
 

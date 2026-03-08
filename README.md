@@ -58,6 +58,14 @@ For a macOS installer-style DMG:
 bun run build:dmg
 ```
 
+Or do it in one step:
+
+```bash
+appbun https://chat.openai.com --name "ChatGPT" --dmg
+```
+
+That flow generates the project, installs dependencies, builds the macOS app, creates a DMG, and opens the DMG automatically.
+
 ## CLI Examples
 
 Basic usage:

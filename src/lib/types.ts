@@ -13,6 +13,7 @@ export interface CreateCommandOptions {
   height: number;
   packageManager: PackageManager;
   install: boolean;
+  dmg: boolean;
   showConfig: boolean;
   quiet: boolean;
 }
