@@ -84,6 +84,7 @@ export function renderTemplateFiles(config: ResolvedAppConfig, icons: PreparedIc
     { path: "package.json", content: generatedPackageJson(config) },
     { path: "tsconfig.json", content: generatedTsconfig() },
     { path: "electrobun.config.ts", content: generatedElectrobunConfig(config, icons) },
+    { path: "scripts/create-dmg.mjs", content: generatedCreateDmgScript(config) },
     { path: "src/bun/index.ts", content: generatedBunEntry(config) },
     { path: "src/mainview/index.html", content: generatedMainviewHtml(config) },
     { path: "src/mainview/index.css", content: generatedMainviewCss(config) },
@@ -116,6 +117,7 @@ function generatedPackageJson(config: ResolvedAppConfig): string {
       start: "electrobun dev",
       dev: "electrobun dev --watch",
       build: "electrobun build",
+      "build:dmg": "bun run build && node scripts/create-dmg.mjs",
       "build:canary": "electrobun build --env=canary",
       "build:stable": "electrobun build --env=stable"
     },
@@ -123,7 +125,8 @@ function generatedPackageJson(config: ResolvedAppConfig): string {
       electrobun: "1.15.1"
     },
     devDependencies: {
-      "@types/bun": "latest"
+      "@types/bun": "latest",
+      "create-dmg": "^8.0.0"
     }
   });
 }
@@ -238,6 +241,92 @@ mainWindow.webview.on("dom-ready", () => {
 
 console.log(${JSON.stringify(startMessage)});
 console.log(${JSON.stringify(descriptionMessage)});
+`;
+}
+
+function generatedCreateDmgScript(config: ResolvedAppConfig): string {
+  return `import { mkdir, readdir } from "node:fs/promises";
+import { basename, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+
+if (process.platform !== "darwin") {
+  console.error("build:dmg is only available on macOS.");
+  process.exit(1);
+}
+
+const root = process.cwd();
+const buildDir = resolve(root, "build");
+const appPath = await findLatestAppBundle(buildDir);
+
+if (!appPath) {
+  console.error("No macOS .app bundle found under build/. Run bun run build first.");
+  process.exit(1);
+}
+
+const destinationDir = resolve(buildDir, "dmg");
+await mkdir(destinationDir, { recursive: true });
+const result = spawnSync(
+  process.platform === "win32" ? "npx.cmd" : "npx",
+  [
+    "create-dmg",
+    appPath,
+    destinationDir,
+    "--overwrite",
+    "--no-version-in-filename",
+    "--no-code-sign",
+    "--dmg-title",
+    ${JSON.stringify(config.name.slice(0, 27))}
+  ],
+  {
+    stdio: "inherit",
+    cwd: root,
+  },
+);
+
+if (result.status !== 0) {
+  process.exit(result.status ?? 1);
+}
+
+console.log(\`DMG created from \${basename(appPath)} in \${destinationDir}\`);
+
+async function findLatestAppBundle(dir) {
+  let best = undefined;
+  await walk(dir);
+  return best?.path;
+
+  async function walk(currentDir) {
+    let entries;
+    try {
+      entries = await readdir(currentDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const fullPath = join(currentDir, entry.name);
+      if (entry.isDirectory() && entry.name.endsWith(".app")) {
+        const score = scoreAppPath(fullPath);
+        if (!best || score > best.score) {
+          best = { path: fullPath, score };
+        }
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      }
+    }
+  }
+}
+
+function scoreAppPath(pathname) {
+  let score = 0;
+  if (pathname.includes("stable")) score += 40;
+  if (pathname.includes("canary")) score += 20;
+  if (pathname.includes("dev")) score += 10;
+  if (pathname.includes("macos")) score += 100;
+  return score;
+}
 `;
 }
 
@@ -435,6 +524,7 @@ function generatedReadme(config: ResolvedAppConfig, icons: PreparedIconAssets): 
   const installCommand = config.packageManager === "bun" ? "bun install" : "npm install";
   const devCommand = config.packageManager === "bun" ? "bun run dev" : "npm run dev";
   const buildCommand = config.packageManager === "bun" ? "bun run build" : "npm run build";
+  const dmgCommand = config.packageManager === "bun" ? "bun run build:dmg" : "npm run build:dmg";
 
   return `# ${config.name}
 
@@ -446,6 +536,7 @@ Generated with [appbun](https://github.com/bigmacfive/appbun). This project wrap
 ${installCommand}
 ${devCommand}
 ${buildCommand}
+${dmgCommand}
 \`\`\`
 
 ## Configuration
@@ -461,12 +552,15 @@ ${buildCommand}
 
 - \`src/bun/index.ts\`: creates the Electrobun window and loads the local shell
 - \`src/mainview/\`: the unified shell header and embedded webview
+- \`scripts/create-dmg.mjs\`: creates a drag-to-Applications DMG on macOS
 - \`electrobun.config.ts\`: app metadata and platform packaging settings
 - \`assets/icon.*\`: site-derived icons when available
 
 ## Notes
 
 The generated app loads the remote site inside an Electrobun shell so the native window chrome and app content feel visually connected, especially on macOS with hidden inset traffic lights.
+
+On macOS, \`${dmgCommand}\` builds the app and wraps the newest \`.app\` bundle in a DMG that opens with the usual drag-to-Applications install flow.
 `;
 }
 

@@ -92,6 +92,7 @@ describe("generator", () => {
     const files = renderTemplateFiles(config, {});
     expect(files.some((file) => file.path === "src/bun/index.ts")).toBe(true);
     expect(files.some((file) => file.path === "src/mainview/index.ts")).toBe(true);
+    expect(files.some((file) => file.path === "scripts/create-dmg.mjs")).toBe(true);
   });
 
   test("writeProject creates config and icon files", async () => {
@@ -143,8 +144,10 @@ describe("generator", () => {
     expect(existsSync(join(config.outDir, "electrobun.config.ts"))).toBe(true);
     expect(existsSync(join(config.outDir, "assets", "icon.ico"))).toBe(true);
     expect(existsSync(join(config.outDir, "icon.iconset", "icon_512x512.png"))).toBe(true);
+    expect(existsSync(join(config.outDir, "scripts", "create-dmg.mjs"))).toBe(true);
     expect(readFileSync(join(config.outDir, "src", "bun", "index.ts"), "utf8")).toContain("views://mainview/index.html");
     expect(readFileSync(join(config.outDir, "src", "mainview", "index.ts"), "utf8")).toContain("https://example.com/");
+    expect(readFileSync(join(config.outDir, "package.json"), "utf8")).toContain("\"build:dmg\"");
     expect(icons.sourceUrl).toBe(svgIconDataUrl);
   });
 });

@@ -9,6 +9,7 @@
 - Pulls favicon, apple-touch-icon, and manifest icons from the target site when available
 - Generates an Electrobun shell that wraps the remote URL in an embedded webview
 - Uses a unified shell header so macOS traffic lights feel integrated with the app content
+- Adds a macOS `build:dmg` flow that opens with the familiar drag-to-Applications installer window
 - Produces a project that is ready for `bun install`, `npm install`, and `electrobun build`
 
 ## Install

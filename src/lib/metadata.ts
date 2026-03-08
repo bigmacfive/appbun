@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import type { IconCandidate, IconFormat, SiteMetadata } from "./types.js";
 import { normalizeHexColor } from "./utils.js";
 
-const USER_AGENT = "appbun/0.2.0 (+https://github.com/bigmacfive/appbun)";
+const USER_AGENT = "appbun/0.3.0 (+https://github.com/bigmacfive/appbun)";
 
 export async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
   const url = new URL(rawUrl).toString();
