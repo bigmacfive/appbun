@@ -383,8 +383,11 @@ function generatedMainviewHtml(config: ResolvedAppConfig): string {
 <body>
   <div class="shell">
     <header class="topbar electrobun-webkit-app-region-drag">
-      <img id="site-icon" class="site-icon" src="views://mainview/icon.png" alt="" />
-      <strong id="site-name">${escapeHtml(config.name)}</strong>
+      <div class="topbar-brand">
+        <img id="site-icon" class="site-icon" src="views://mainview/icon.png" alt="" />
+        <strong id="site-name">${escapeHtml(config.name)}</strong>
+      </div>
+      <span id="site-origin" class="site-origin">${escapeHtml(new URL(config.url).hostname)}</span>
     </header>
     <main class="stage">
       <div id="webview-mount" class="webview-mount"></div>
@@ -399,8 +402,11 @@ function generatedMainviewCss(config: ResolvedAppConfig): string {
   return `:root {
   color-scheme: light;
   --shell-ink: rgba(22, 22, 24, 0.92);
-  --shell-chip: rgba(250, 250, 252, 0.66);
-  --shell-chip-border: rgba(15, 23, 42, 0.10);
+  --shell-muted: rgba(55, 65, 81, 0.72);
+  --shell-border: rgba(15, 23, 42, 0.10);
+  --shell-toolbar: rgba(248, 248, 250, 0.84);
+  --shell-toolbar-height: 40px;
+  --shell-toolbar-left: 78px;
 }
 
 * {
@@ -414,34 +420,41 @@ body {
   height: 100%;
   overflow: hidden;
   font-family: "SF Pro Text", "Segoe UI", sans-serif;
+  background: #ffffff;
 }
 
 .shell {
   width: 100%;
   height: 100%;
   position: relative;
+  background: #ffffff;
 }
 
 .topbar {
   position: absolute;
-  top: 8px;
-  left: 78px;
-  max-width: min(320px, calc(100vw - 120px));
-  height: 28px;
+  inset: 0 0 auto 0;
+  height: var(--shell-toolbar-height);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  border-radius: 10px;
-  background: var(--shell-chip);
-  border: 1px solid var(--shell-chip-border);
-  backdrop-filter: blur(20px) saturate(1.05);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px 0 var(--shell-toolbar-left);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), var(--shell-toolbar));
+  border-bottom: 1px solid var(--shell-border);
+  backdrop-filter: blur(24px) saturate(1.15);
   z-index: 2;
 }
 
+.topbar-brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .site-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
   flex: 0 0 auto;
 }
@@ -457,9 +470,19 @@ body {
   text-overflow: ellipsis;
 }
 
+.site-origin {
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--shell-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .stage {
   position: absolute;
-  inset: 0;
+  inset: var(--shell-toolbar-height) 0 0 0;
 }
 
 .webview-mount {
@@ -477,8 +500,11 @@ electrobun-webview {
 
 @media (max-width: 720px) {
   .topbar {
-    left: 68px;
-    max-width: calc(100vw - 96px);
+    padding-left: 68px;
+  }
+
+  .site-origin {
+    display: none;
   }
 }
 `;
@@ -497,11 +523,13 @@ function generatedMainviewEntry(config: ResolvedAppConfig, icons: PreparedIconAs
   }, null, 2)};
 const mount = document.getElementById("webview-mount");
 const siteName = document.getElementById("site-name");
+const siteOrigin = document.getElementById("site-origin");
 const siteIcon = document.getElementById("site-icon") as HTMLImageElement | null;
 
 document.title = APP_CONFIG.title;
 document.documentElement.style.setProperty("--appbun-accent", APP_CONFIG.themeColor);
 siteName && (siteName.textContent = APP_CONFIG.name);
+siteOrigin && (siteOrigin.textContent = APP_CONFIG.origin.replace(/^https?:\\/\\//, ""));
 
 if (mount) {
   const webview = document.createElement("electrobun-webview");

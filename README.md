@@ -1,35 +1,33 @@
 # appbun
 
-Turn any web app into an installable desktop app powered by [Electrobun](https://electrobun.dev).
+[![npm version](https://img.shields.io/npm/v/appbun?color=cb3837&logo=npm)](https://www.npmjs.com/package/appbun)
+[![npm downloads](https://img.shields.io/npm/dm/appbun?color=111827&logo=npm)](https://www.npmjs.com/package/appbun)
+[![CI](https://img.shields.io/github/actions/workflow/status/bigmacfive/appbun/ci.yml?branch=main&label=ci)](https://github.com/bigmacfive/appbun/actions/workflows/ci.yml)
+[![Last commit](https://img.shields.io/github/last-commit/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/commits/main)
+[![Closed issues](https://img.shields.io/github/issues-closed/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/issues?q=is%3Aissue+is%3Aclosed)
+[![License](https://img.shields.io/github/license/bigmacfive/appbun)](./LICENSE)
 
-`appbun` is a Pake-style app generator for people who want the same fast "URL -> desktop app" workflow, but built on Electrobun instead of Tauri or Electron.
+Turn any webpage into a desktop app with one command. `appbun` wraps a URL in an [Electrobun](https://electrobun.dev) project, pulls usable icons from site metadata, and gives you installer-friendly packaging for macOS with a clean path to Windows and Linux builds.
 
-- npm: [appbun](https://www.npmjs.com/package/appbun)
-- GitHub: [bigmacfive/appbun](https://github.com/bigmacfive/appbun)
+Supports macOS, Windows, and Linux.
+
+![appbun social card](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/social-card.png)
 
 ## Why appbun
 
-Packaging a web app as a desktop app should not require building a whole native shell from scratch.
+`appbun` exists for the same reason people reach for Pake: the fast `URL -> desktop app` workflow is useful.
 
-`appbun` handles the repetitive parts for you:
+The difference is the output.
 
-- reads site metadata like title, description, theme color, favicon, and manifest icons
-- generates an Electrobun desktop shell around the remote web app
-- creates site-derived icons for macOS, Windows, and Linux
-- gives macOS builds a more app-like unified title area instead of a generic browser frame
-- adds a `build:dmg` workflow so macOS users get the familiar drag-to-Applications installer flow
+Instead of hiding everything behind a black box, `appbun` gives you a normal Electrobun project you can inspect, edit, version, and ship.
 
-## What you get
+What it handles for you:
 
-Given a URL like `https://linear.app`, `appbun` generates a project that includes:
-
-- an Electrobun app entrypoint in `src/bun/index.ts`
-- a local shell UI in `src/mainview/` with an embedded `electrobun-webview`
-- platform packaging config in `electrobun.config.ts`
-- generated icon assets in `assets/` and `icon.iconset/`
-- a macOS DMG creation script in `scripts/create-dmg.mjs`
-
-The output is a real project you can inspect, edit, version, and contribute back to.
+- fetches title, description, theme color, favicon, apple-touch icon, and manifest icons
+- rejects obviously broken icon responses and low-quality raster assets before packaging
+- generates a local Electrobun shell around the target URL
+- uses a unified top bar on macOS so the window chrome and content feel connected
+- produces cross-platform build output, plus a macOS DMG flow for drag-to-Applications installs
 
 ## Install
 
@@ -41,9 +39,17 @@ bun add -g appbun
 npm install -g appbun
 ```
 
-If your npm global install path is permission-locked, prefer `bun add -g appbun` or use `npx appbun ...`.
+If your npm global prefix is permission-locked, prefer `bun add -g appbun` or use `npx appbun@latest ...`.
 
-## Quick Start
+## Quick start
+
+```bash
+appbun https://chat.openai.com --name "ChatGPT" --dmg
+```
+
+That one command can scaffold the project, install dependencies, build the app, create a DMG on macOS, and open the installer window.
+
+If you want the generated project without building immediately:
 
 ```bash
 appbun https://linear.app --name "Linear Desktop"
@@ -52,29 +58,11 @@ bun install
 bun run build
 ```
 
-For a macOS installer-style DMG:
+## CLI examples
 
 ```bash
-bun run build:dmg
+appbun https://github.com --name "GitHub"
 ```
-
-Or do it in one step:
-
-```bash
-appbun https://chat.openai.com --name "ChatGPT" --dmg
-```
-
-That flow generates the project, installs dependencies, builds the macOS app, creates a DMG, and opens the DMG automatically.
-
-## CLI Examples
-
-Basic usage:
-
-```bash
-appbun https://calendar.google.com
-```
-
-Custom name, size, and output folder:
 
 ```bash
 appbun create https://calendar.google.com \
@@ -84,62 +72,69 @@ appbun create https://calendar.google.com \
   --height 1000
 ```
 
-Override shell accent color manually:
-
 ```bash
 appbun https://chat.openai.com --theme-color '#10a37f'
 ```
 
-Use npm for generated project installs:
-
 ```bash
-appbun https://notion.so --package-manager npm
+appbun https://www.notion.so --package-manager npm
 ```
 
-## Generated Project Structure
+## Showcase
+
+Current public web entry points captured with Playwright and framed to match the generated shell:
+
+![appbun showcase](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/screenshots/showcase-grid.png)
+
+### Example targets
+
+| App | URL | Command |
+| --- | --- | --- |
+| ChatGPT | `https://chat.openai.com` | `appbun https://chat.openai.com --name "ChatGPT" --dmg` |
+| GitHub | `https://github.com` | `appbun https://github.com --name "GitHub" --dmg` |
+| Notion | `https://www.notion.so` | `appbun https://www.notion.so --name "Notion" --dmg` |
+| Figma | `https://www.figma.com` | `appbun https://www.figma.com --name "Figma" --dmg` |
+| Linear | `https://linear.app` | `appbun https://linear.app --name "Linear" --dmg` |
+| Telegram | `https://web.telegram.org/k` | `appbun https://web.telegram.org/k --name "Telegram" --dmg` |
+
+More detail lives in [docs/showcase/README.md](docs/showcase/README.md).
+
+## Generated project structure
 
 ```text
 my-app/
-├── assets/                 # Derived app icons
-├── icon.iconset/           # macOS iconset
+├── assets/                 # Derived icon assets for packaging
+├── icon.iconset/           # macOS iconset sizes (16 through 1024)
 ├── scripts/
-│   └── create-dmg.mjs      # macOS DMG packager
+│   └── create-dmg.mjs      # macOS DMG helper
 ├── src/
 │   ├── bun/
-│   │   └── index.ts        # Electrobun window entry
+│   │   └── index.ts        # Electrobun window entrypoint
 │   └── mainview/
 │       ├── index.html      # Local shell markup
-│       ├── index.css       # Unified app chrome styling
-│       └── index.ts        # Embedded webview setup
+│       ├── index.css       # Unified title area styles
+│       └── index.ts        # Embedded remote webview bootstrap
 ├── electrobun.config.ts
 ├── package.json
 └── tsconfig.json
 ```
 
-## macOS Experience
+## Platform notes
 
-Generated apps on macOS are intentionally not just a plain remote browser window.
+### macOS
 
-`appbun` uses a local shell so the desktop app can feel more native:
+Generated apps use:
 
-- hidden inset traffic lights
-- unified top bar and content area
-- site icon and origin shown in the shell header
-- DMG packaging for easier drag-to-Applications installs
+- `hiddenInset` traffic lights
+- `UnifiedTitleAndToolbar`
+- a full-width local title area instead of a floating fake header
+- `build:dmg` for installer-style distribution
 
-## Positioning
+### Windows and Linux
 
-If you are searching for any of these, you are in the right place:
+The generated Electrobun project is already buildable there. `appbun` currently focuses its installer automation on macOS first; Windows and Linux packaging helpers are still on the roadmap.
 
-- Pake alternative for Electrobun
-- turn website into desktop app with Bun
-- web app to desktop app CLI
-- package URL as macOS app
-- generate DMG from web app wrapper
-- Electrobun app generator
-- website to desktop wrapper
-
-## Local Development
+## Local development
 
 ```bash
 bun install
@@ -148,7 +143,20 @@ bun run test
 bun run build
 ```
 
-## Release Checks
+## Refresh showcase assets
+
+```bash
+bunx playwright install chromium
+bun run showcase:capture
+```
+
+This updates:
+
+- `docs/screenshots/*.png`
+- `docs/assets/social-card.png`
+- `docs/showcase/manifest.json`
+
+## Release checks
 
 ```bash
 bun run release:check
@@ -156,41 +164,34 @@ bun run release:check
 
 ## Contributing
 
-Contributions are welcome.
+The contribution bar is straightforward: improve the generated app quality, packaging flow, or docs, and prove it with a reproducible test or sample scaffold.
 
-Good first contribution areas:
+Start here:
 
-- better favicon and manifest icon selection
-- Linux and Windows installer packaging flows
-- site-specific shell presets
-- navigation controls and app menu improvements
-- stronger generated app defaults for auth-heavy products
-- documentation and example gallery
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [Bug report template](.github/ISSUE_TEMPLATE/bug_report.yml)
+- [Feature request template](.github/ISSUE_TEMPLATE/feature_request.yml)
 
-Open an issue or send a PR if you want to improve:
+High-value contribution areas:
 
-- generated project quality
-- packaging workflows
-- metadata extraction
-- platform polish
-- docs and onboarding
+- better site-specific icon heuristics
+- Windows installer helpers
+- Linux packaging helpers
+- auth-heavy web app presets
+- navigation controls and app menus
+- docs, gallery, and compatibility notes
 
-## Roadmap
+## Positioning
 
-Short-term areas worth improving:
+If you are searching for any of these, this project is in the right lane:
 
-- Windows installer output
-- Linux AppImage or deb packaging helpers
-- optional multi-window support
-- optional app menu presets
-- custom shell themes
-- domain-specific presets for chat, mail, docs, dashboards
-
-## Open Source
-
-This project is intentionally simple, inspectable, and hackable.
-
-The goal is not to hide the generated app behind a black box. The goal is to give developers a clean starting point they can own.
+- Pake alternative for Electrobun
+- turn website into desktop app with Bun
+- website to desktop app CLI
+- package URL as a macOS app
+- create DMG from a web app wrapper
+- Electrobun app generator
+- website wrapper for macOS, Windows, and Linux
 
 ## License
 

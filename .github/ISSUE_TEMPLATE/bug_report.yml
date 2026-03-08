@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible problem in appbun or in generated projects.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Repro steps matter more than opinions here. Include the URL, command, platform, and what broke.
+  - type: input
+    id: appbun_version
+    attributes:
+      label: appbun version
+      placeholder: 0.5.0
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: macOS 15.4 / Windows 11 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: target_url
+    attributes:
+      label: Target URL
+      placeholder: https://chat.openai.com
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      render: bash
+      placeholder: appbun https://chat.openai.com --name "ChatGPT" --dmg
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste stack traces, CLI output, or attach screenshots.

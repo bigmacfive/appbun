@@ -32,6 +32,11 @@ interface LoadedIcon {
   originalIco?: Buffer;
 }
 
+interface FetchedIconAsset {
+  buffer: Buffer;
+  contentType?: string;
+}
+
 export async function prepareIconAssets(targetDir: string, metadata: SiteMetadata): Promise<PreparedIconAssets> {
   const assetsDir = join(targetDir, "assets");
   const iconsetDir = join(targetDir, "icon.iconset");
@@ -76,30 +81,41 @@ export async function prepareIconAssets(targetDir: string, metadata: SiteMetadat
 async function loadBestIcon(candidates: IconCandidate[]): Promise<LoadedIcon | undefined> {
   const sortedCandidates = [...candidates].sort((left, right) => scoreCandidate(right) - scoreCandidate(left));
   for (const candidate of sortedCandidates) {
-    const buffer = await fetchBuffer(candidate.url).catch(() => undefined);
-    if (!buffer || buffer.byteLength === 0) {
+    const asset = await fetchIconAsset(candidate.url).catch(() => undefined);
+    if (!asset?.buffer || asset.buffer.byteLength === 0) {
       continue;
     }
 
-    const format = detectFormat(candidate, buffer);
+    if (asset.contentType && isClearlyNotAnImage(asset.contentType)) {
+      continue;
+    }
+
+    const format = detectFormat(candidate, asset.buffer, asset.contentType);
     if (format === "svg") {
+      const svg = asset.buffer.toString("utf8");
+      if (!isLikelySvg(svg)) {
+        continue;
+      }
+      if (!isLikelySquareSvg(svg)) {
+        continue;
+      }
       return {
         format,
         sourceUrl: candidate.url,
-        svg: buffer.toString("utf8"),
+        svg,
       };
     }
 
     if (format === "png") {
       try {
-        const png = PNG.sync.read(buffer);
-        if (Math.min(png.width, png.height) < MIN_USABLE_ICON_SIZE) {
+        const png = PNG.sync.read(asset.buffer);
+        if (!isUsableRasterSize(png.width, png.height)) {
           continue;
         }
         return {
           format,
           sourceUrl: candidate.url,
-          rasterPng: buffer,
+          rasterPng: asset.buffer,
         };
       } catch {
         continue;
@@ -108,16 +124,18 @@ async function loadBestIcon(candidates: IconCandidate[]): Promise<LoadedIcon | u
 
     if (format === "ico") {
       try {
-        const parsed = await parseICO(buffer, "image/png");
-        const largest = [...parsed].sort((left, right) => right.width - left.width)[0];
-        if (!largest || Math.min(largest.width, largest.height) < MIN_USABLE_ICON_SIZE) {
+        const parsed = await parseICO(asset.buffer, "image/png");
+        const largest = [...parsed]
+          .filter((entry) => isUsableRasterSize(entry.width, entry.height))
+          .sort((left, right) => right.width - left.width)[0];
+        if (!largest) {
           continue;
         }
         return {
           format: "png",
           sourceUrl: candidate.url,
           rasterPng: Buffer.from(largest.buffer),
-          originalIco: buffer,
+          originalIco: asset.buffer,
         };
       } catch {
         continue;
@@ -170,7 +188,7 @@ function resizePng(buffer: Buffer, size: number): Buffer {
   return PNG.sync.write(destination);
 }
 
-async function fetchBuffer(url: string): Promise<Buffer> {
+async function fetchIconAsset(url: string): Promise<FetchedIconAsset> {
   if (url.startsWith("data:")) {
     return decodeDataUrl(url);
   }
@@ -184,15 +202,29 @@ async function fetchBuffer(url: string): Promise<Buffer> {
   if (!response.ok) {
     throw new Error(`Failed to fetch icon ${url}: ${response.status}`);
   }
-  return Buffer.from(await response.arrayBuffer());
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    contentType: response.headers.get("content-type") || undefined,
+  };
 }
 
-function detectFormat(candidate: IconCandidate, buffer: Buffer): IconFormat | undefined {
+function detectFormat(candidate: IconCandidate, buffer: Buffer, contentType?: string): IconFormat | undefined {
   if (candidate.format) {
     return candidate.format;
   }
 
-  const trimmed = buffer.subarray(0, 64).toString("utf8").trimStart().toLowerCase();
+  const source = `${contentType || ""} ${candidate.mimeType || ""}`.toLowerCase();
+  if (source.includes("svg")) {
+    return "svg";
+  }
+  if (source.includes("png")) {
+    return "png";
+  }
+  if (source.includes("ico") || source.includes("icon")) {
+    return "ico";
+  }
+
+  const trimmed = buffer.subarray(0, 256).toString("utf8").trimStart().toLowerCase();
   if (trimmed.startsWith("<svg") || trimmed.includes("<svg")) {
     return "svg";
   }
@@ -227,20 +259,26 @@ function scoreCandidate(candidate: IconCandidate): number {
   if (candidate.format === "ico") {
     score += 40;
   }
+  if (candidate.sizes.length > 0 && candidate.sizes.every((size) => size >= 180)) {
+    score += 60;
+  }
   if (largestSize < MIN_USABLE_ICON_SIZE && candidate.format !== "svg") {
     score -= 300;
   }
   if (rel.includes("fallback")) {
-    score -= 40;
+    score -= 140;
   }
   if (candidate.purpose?.includes("maskable")) {
     score += 25;
+  }
+  if (candidate.purpose?.includes("monochrome")) {
+    score -= 500;
   }
 
   return score;
 }
 
-function decodeDataUrl(url: string): Buffer {
+function decodeDataUrl(url: string): FetchedIconAsset {
   const match = url.match(/^data:([^;,]+)?(;base64)?,(.*)$/);
   if (!match) {
     throw new Error("Invalid data URL");
@@ -248,5 +286,52 @@ function decodeDataUrl(url: string): Buffer {
 
   const isBase64 = Boolean(match[2]);
   const payload = match[3] || "";
-  return isBase64 ? Buffer.from(payload, "base64") : Buffer.from(decodeURIComponent(payload), "utf8");
+  return {
+    buffer: isBase64 ? Buffer.from(payload, "base64") : Buffer.from(decodeURIComponent(payload), "utf8"),
+    contentType: match[1] || undefined,
+  };
+}
+
+function isClearlyNotAnImage(contentType: string): boolean {
+  const normalized = contentType.toLowerCase();
+  return normalized.startsWith("text/html") || normalized.startsWith("application/json");
+}
+
+function isLikelySvg(svg: string): boolean {
+  const trimmed = svg.trimStart().toLowerCase();
+  return trimmed.startsWith("<svg") || trimmed.includes("<svg");
+}
+
+function isLikelySquareSvg(svg: string): boolean {
+  const viewBoxMatch = svg.match(/viewBox=["']([^"']+)["']/i);
+  if (viewBoxMatch?.[1]) {
+    const values = viewBoxMatch[1]
+      .trim()
+      .split(/[\s,]+/)
+      .map((value) => Number.parseFloat(value))
+      .filter((value) => Number.isFinite(value));
+    if (values.length === 4) {
+      return isAlmostSquare(values[2] || 0, values[3] || 0);
+    }
+  }
+
+  const widthMatch = svg.match(/width=["'](\d+(?:\.\d+)?)/i);
+  const heightMatch = svg.match(/height=["'](\d+(?:\.\d+)?)/i);
+  if (widthMatch && heightMatch) {
+    return isAlmostSquare(Number.parseFloat(widthMatch[1] || "0"), Number.parseFloat(heightMatch[1] || "0"));
+  }
+
+  return true;
+}
+
+function isUsableRasterSize(width: number, height: number): boolean {
+  return Math.min(width, height) >= MIN_USABLE_ICON_SIZE && isAlmostSquare(width, height);
+}
+
+function isAlmostSquare(width: number, height: number): boolean {
+  if (!width || !height) {
+    return false;
+  }
+  const ratio = Math.max(width, height) / Math.min(width, height);
+  return ratio <= 1.15;
 }

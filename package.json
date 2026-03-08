@@ -1,7 +1,7 @@
 {
   "name": "appbun",
-  "version": "0.4.3",
-  "description": "Pake-style CLI to turn any website or web app URL into an Electrobun desktop app.",
+  "version": "0.5.0",
+  "description": "Turn any webpage into a desktop app with one command using Electrobun.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -25,7 +25,8 @@
     "test": "bun test src",
     "prepack": "bun run build",
     "prepublishOnly": "bun run build",
-    "release:check": "bun run build && npm pack --dry-run"
+    "release:check": "bun run build && npm pack --dry-run",
+    "showcase:capture": "node scripts/capture-showcase.mjs"
   },
   "keywords": [
     "electrobun",
@@ -42,7 +43,11 @@
     "tauri-alternative",
     "electron-alternative",
     "website-to-app",
-    "desktop-wrapper"
+    "desktop-wrapper",
+    "desktop-webview",
+    "website-wrapper",
+    "website-to-app-cli",
+    "cross-platform"
   ],
   "repository": {
     "type": "git",
@@ -68,6 +73,7 @@
     "@types/bun": "^1.3.3",
     "@types/node": "^24.6.0",
     "@types/pngjs": "^6.0.5",
+    "playwright": "^1.54.2",
     "typescript": "^5.9.3"
   },
   "packageManager": "bun@1.3.4"

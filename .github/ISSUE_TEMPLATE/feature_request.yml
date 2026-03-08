@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a product, packaging, or generated-app improvement.
+title: "feature: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What is missing today, and where does it block you?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the CLI flag, generated code, packaging flow, or docs change you want.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra context
+      description: Links, screenshots, upstream Electrobun references, or examples from other tools.

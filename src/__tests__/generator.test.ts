@@ -101,6 +101,8 @@ describe("generator", () => {
     expect(files.some((file) => file.path === "src/bun/index.ts")).toBe(true);
     expect(files.some((file) => file.path === "src/mainview/index.ts")).toBe(true);
     expect(files.some((file) => file.path === "scripts/create-dmg.mjs")).toBe(true);
+    expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("site-origin");
+    expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("--shell-toolbar-height: 40px");
   });
 
   test("writeProject creates config and icon files", async () => {
@@ -155,6 +157,7 @@ describe("generator", () => {
     expect(existsSync(join(config.outDir, "scripts", "create-dmg.mjs"))).toBe(true);
     expect(readFileSync(join(config.outDir, "src", "bun", "index.ts"), "utf8")).toContain("views://mainview/index.html");
     expect(readFileSync(join(config.outDir, "src", "mainview", "index.ts"), "utf8")).toContain("https://example.com/");
+    expect(readFileSync(join(config.outDir, "src", "mainview", "index.ts"), "utf8")).toContain("example.com");
     expect(readFileSync(join(config.outDir, "package.json"), "utf8")).toContain("\"build:dmg\"");
     expect(icons.sourceUrl).toBe(svgIconDataUrl);
   });

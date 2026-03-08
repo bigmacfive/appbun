@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-03-08T08:18:47.443Z",
+  "apps": [
+    {
+      "name": "ChatGPT",
+      "slug": "chatgpt",
+      "url": "https://chat.openai.com/",
+      "description": "AI chat workspace",
+      "command": "appbun https://chat.openai.com --name \"ChatGPT\" --dmg",
+      "accent": "#10a37f",
+      "relativeImagePath": "docs/screenshots/chatgpt.png"
+    },
+    {
+      "name": "GitHub",
+      "slug": "github",
+      "url": "https://github.com/",
+      "description": "Code hosting and review",
+      "command": "appbun https://github.com --name \"GitHub\" --dmg",
+      "accent": "#111827",
+      "relativeImagePath": "docs/screenshots/github.png"
+    },
+    {
+      "name": "Notion",
+      "slug": "notion",
+      "url": "https://www.notion.so/",
+      "description": "Docs, notes, and internal wiki",
+      "command": "appbun https://www.notion.so --name \"Notion\" --dmg",
+      "accent": "#111111",
+      "relativeImagePath": "docs/screenshots/notion.png"
+    },
+    {
+      "name": "Figma",
+      "slug": "figma",
+      "url": "https://www.figma.com/",
+      "description": "Product design and prototyping",
+      "command": "appbun https://www.figma.com --name \"Figma\" --dmg",
+      "accent": "#7c3aed",
+      "relativeImagePath": "docs/screenshots/figma.png"
+    },
+    {
+      "name": "Linear",
+      "slug": "linear",
+      "url": "https://linear.app/",
+      "description": "Issue tracking and product planning",
+      "command": "appbun https://linear.app --name \"Linear\" --dmg",
+      "accent": "#5e6ad2",
+      "relativeImagePath": "docs/screenshots/linear.png"
+    },
+    {
+      "name": "Telegram",
+      "slug": "telegram",
+      "url": "https://web.telegram.org/k/",
+      "description": "Messaging from the web",
+      "command": "appbun https://web.telegram.org/k --name \"Telegram\" --dmg",
+      "accent": "#229ed9",
+      "relativeImagePath": "docs/screenshots/telegram.png"
+    }
+  ]
+}
