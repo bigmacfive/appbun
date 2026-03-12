@@ -214,6 +214,58 @@ describe("generator", () => {
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("--shell-toolbar-height: 36px");
   });
 
+  test("npm package manager renders npm-based DMG script", () => {
+    const config = resolveAppConfig(
+      "https://example.com",
+      {
+        width: 1400,
+        height: 900,
+        packageManager: "npm",
+        install: false,
+        dmg: false,
+        yes: false,
+        showConfig: false,
+        quiet: true,
+      },
+      {
+        title: "Example",
+        description: "Example app",
+        themeColor: "#336699",
+        sourceUrl: "https://example.com",
+        iconCandidates: [],
+      },
+    );
+
+    const files = renderTemplateFiles(config, {});
+    expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:dmg": "npm run build:stable && node scripts/create-dmg.mjs"');
+  });
+
+  test("generated readme includes first-launch macOS note", () => {
+    const config = resolveAppConfig(
+      "https://example.com",
+      {
+        width: 1400,
+        height: 900,
+        packageManager: "bun",
+        install: false,
+        dmg: false,
+        yes: false,
+        showConfig: false,
+        quiet: true,
+      },
+      {
+        title: "Example",
+        description: "Example app",
+        themeColor: "#336699",
+        sourceUrl: "https://example.com",
+        iconCandidates: [],
+      },
+    );
+
+    const files = renderTemplateFiles(config, {});
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("If the installed macOS app does not open from Finder or the Dock the first time");
+  });
+
   test("writeProject creates config and icon files", async () => {
     const root = mkdtempSync(join(tmpdir(), "appbun-test-"));
     tempDirs.push(root);

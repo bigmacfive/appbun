@@ -19,11 +19,12 @@ import { createFallbackSiteMetadata, fetchSiteMetadata } from "./lib/metadata.js
 import type { CreateCommandOptions, TitlebarStyle } from "./lib/types.js";
 import { clearDirectoryContents, displayPath, isDirectoryEmpty, suggestAlternativeOutputDirectory } from "./lib/utils.js";
 
+const defaultPackageManager = detectPreferredPackageManager();
 const defaultOptions: CreateCommandOptions = {
   width: 1440,
   height: 900,
   titlebar: "unified",
-  packageManager: "bun",
+  packageManager: defaultPackageManager,
   install: false,
   dmg: false,
   yes: false,
@@ -41,7 +42,7 @@ program
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
   .showSuggestionAfterError()
   .showHelpAfterError()
-  .version("0.5.3");
+  .version("0.5.4");
 
 program
   .command("create")
@@ -88,6 +89,7 @@ Examples:
   .action(async (url: string, options: CreateCommandOptions) => {
     try {
       validatePackageManager(options.packageManager);
+      const userSpecifiedPackageManager = process.argv.includes("--package-manager");
       let usedFallbackMetadata = false;
       const metadata = await fetchSiteMetadata(url).catch((error) => {
         usedFallbackMetadata = true;
@@ -114,6 +116,10 @@ Examples:
       if (options.showConfig) {
         console.log(pc.bold(pc.green("resolved config")));
         console.log(JSON.stringify(config, null, 2));
+      }
+
+      if (!options.quiet && !userSpecifiedPackageManager && config.packageManager === "npm" && defaultPackageManager === "npm") {
+        console.log(pc.bold(pc.cyan("package manager")), `${config.packageManager} (bun not found locally)`);
       }
 
       const preparedIcons = await writeProject(config, metadata);
@@ -168,6 +174,7 @@ Examples:
 
         if (!options.quiet) {
           console.log(pc.bold(pc.green("dmg")), dmgPath);
+          printMacLaunchNote();
         }
 
         const shouldOpenDmg = await shouldProceedWithAction(
@@ -320,6 +327,17 @@ function validatePackageManager(value: string): asserts value is "bun" | "npm" {
   }
 }
 
+function detectPreferredPackageManager(): "bun" | "npm" {
+  return hasExecutable("bun") ? "bun" : "npm";
+}
+
+function hasExecutable(command: string): boolean {
+  const result = spawnSync(command, ["--version"], {
+    stdio: "ignore",
+  });
+  return !result.error && result.status === 0;
+}
+
 function looksLikeUrl(value?: string): boolean {
   if (!value) {
     return false;
@@ -426,4 +444,9 @@ function copyToClipboard(value: string): void {
       `Clipboard copy failed${error ? `: ${error}` : ""}. Re-run without --copy if clipboard access is unavailable.`,
     );
   }
+}
+
+function printMacLaunchNote(): void {
+  console.log(pc.bold(pc.yellow("note")), "If the installed macOS app does not open on first launch, open it once from Applications with Open in the context menu.");
+  console.log("  macOS can show a one-time launcher permission prompt for local Electrobun builds.");
 }

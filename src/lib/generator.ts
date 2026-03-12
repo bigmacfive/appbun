@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import type {
   CreateCommandOptions,
   GeneratedFile,
+  PackageManager,
   PreparedIconAssets,
   ResolvedAppConfig,
   SiteMetadata,
@@ -69,28 +70,11 @@ export async function writeProject(config: ResolvedAppConfig, metadata: SiteMeta
 }
 
 export function installDependencies(config: ResolvedAppConfig): void {
-  const command = config.packageManager;
-  const result = spawnSync(command, ["install"], {
-    cwd: config.outDir,
-    stdio: "inherit",
-  });
-
-  if (result.status !== 0) {
-    throw new Error(`${command} install failed with exit code ${result.status ?? "unknown"}`);
-  }
+  runPackageManagerCommand(config.packageManager, ["install"], config.outDir);
 }
 
 export function runPackageScript(config: ResolvedAppConfig, scriptName: string): void {
-  const command = config.packageManager;
-  const args = config.packageManager === "bun" ? ["run", scriptName] : ["run", scriptName];
-  const result = spawnSync(command, args, {
-    cwd: config.outDir,
-    stdio: "inherit",
-  });
-
-  if (result.status !== 0) {
-    throw new Error(`${command} run ${scriptName} failed with exit code ${result.status ?? "unknown"}`);
-  }
+  runPackageManagerCommand(config.packageManager, ["run", scriptName], config.outDir);
 }
 
 export function findLatestDmg(config: ResolvedAppConfig): string | undefined {
@@ -150,6 +134,7 @@ function generatedGitignore(): string {
 }
 
 function generatedPackageJson(config: ResolvedAppConfig): string {
+  const packageManagerRun = config.packageManager === "bun" ? "bun run" : "npm run";
   return prettyJson({
     name: config.packageName,
     version: "0.1.0",
@@ -159,7 +144,7 @@ function generatedPackageJson(config: ResolvedAppConfig): string {
       start: "electrobun dev",
       dev: "electrobun dev --watch",
       build: "electrobun build",
-      "build:dmg": "bun run build:stable && node scripts/create-dmg.mjs",
+      "build:dmg": `${packageManagerRun} build:stable && node scripts/create-dmg.mjs`,
       "build:canary": "electrobun build --env=canary",
       "build:stable": "electrobun build --env=stable"
     },
@@ -617,7 +602,32 @@ ${dmgCommand}
 The generated app loads the remote site inside an Electrobun shell. The selected \`${config.titlebar}\` preset currently maps to ${preset.readmeDescription}.
 
 On macOS, \`${dmgCommand}\` builds the app and wraps the newest \`.app\` bundle in a DMG that opens with the usual drag-to-Applications install flow.
+
+If the installed macOS app does not open from Finder or the Dock the first time, open it once from the Applications folder with **Open** in the context menu. Some local Electrobun builds trigger a one-time launcher permission prompt on first launch.
 `;
+}
+
+function runPackageManagerCommand(packageManager: PackageManager, args: string[], cwd: string): void {
+  const result = spawnSync(packageManager, args, {
+    cwd,
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    const error = result.error as NodeJS.ErrnoException;
+    if (error.code === "ENOENT") {
+      const fallback = packageManager === "bun" ? "npm" : "bun";
+      throw new Error(
+        `${packageManager} is not installed. Install ${packageManager} or rerun appbun with --package-manager ${fallback}.`,
+      );
+    }
+
+    throw error;
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`${packageManager} ${args.join(" ")} failed with exit code ${result.status ?? "unknown"}`);
+  }
 }
 
 function getTitlebarPreset(style: TitlebarStyle) {

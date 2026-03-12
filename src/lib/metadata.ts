@@ -7,7 +7,7 @@ const USER_AGENT = [
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
   "AppleWebKit/537.36 (KHTML, like Gecko)",
   "Chrome/133.0.0.0 Safari/537.36",
-  "appbun/0.5.3 (+https://github.com/bigmacfive/appbun)"
+  "appbun/0.5.4 (+https://github.com/bigmacfive/appbun)"
 ].join(" ");
 
 export async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {

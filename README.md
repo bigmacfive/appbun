@@ -44,6 +44,8 @@ npm install -g appbun
 
 If your npm global prefix is permission-locked, prefer `bun add -g appbun` or use `npx appbun@latest ...`.
 
+`appbun` prefers Bun when Bun is installed locally. If it is not available, `appbun` falls back to npm automatically unless you force `--package-manager`.
+
 ## Quick start
 
 ```bash
@@ -129,6 +131,26 @@ To inspect every option quickly:
 ```bash
 appbun create --help
 ```
+
+## Troubleshooting
+
+### Bun is not installed
+
+If Bun is not installed on the machine running `appbun`, the CLI now falls back to npm automatically for generated projects and install/build flows. You can still force one side explicitly with:
+
+```bash
+appbun https://example.com --package-manager npm
+```
+
+### macOS app does not open the first time
+
+Some local Electrobun macOS builds can trigger a one-time launcher permission prompt. If the installed app does not open from Finder or the Dock on first launch:
+
+1. Open the Applications folder.
+2. Right-click the app and choose `Open` once.
+3. If macOS shows a launcher prompt, allow it.
+
+After the first successful launch, the app should behave normally.
 
 ## Showcase
 
