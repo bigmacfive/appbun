@@ -145,6 +145,22 @@ appbun prompt http://localhost:3000 --name "My App"
 
 그러면 에이전트가 현재 웹앱을 `./desktop/my-app` 아래에 `appbun@latest`로 패키징하고 빌드하게 만드는 지시문이 출력됩니다.
 
+## Codex 스킬
+
+`appbun`은 Codex 스킬도 함께 제공합니다. 웹 개발자가 매번 명령을 외우지 않아도, 에이전트에게 웹사이트나 로컬 프론트엔드를 inspect 가능한 데스크톱 앱으로 패키징하라고 맡길 수 있습니다.
+
+```bash
+appbun skill --install
+```
+
+Codex에서는 이렇게 호출하면 됩니다:
+
+```text
+$appbun-web-desktop package my local web app at http://localhost:3000 as a desktop app
+```
+
+이 스킬은 URL 선택, `appbun` scaffolding, 빌드 검증, `appbun doctor --target ...`, macOS/Windows/Linux native runner 패키징 원칙까지 에이전트가 따라가도록 안내합니다.
+
 ## 내장 레시피
 
 레시피는 안정적인 URL, 표시 이름, 테마 색상, titlebar 선택을 미리 담아 둔 인기 웹앱 shortcut입니다. 데모와 반복 설치가 훨씬 짧아집니다:

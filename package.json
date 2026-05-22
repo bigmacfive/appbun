@@ -1,6 +1,6 @@
 {
   "name": "appbun",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Turn any webpage into a desktop app with one command using Electrobun.",
   "license": "MIT",
   "type": "module",
@@ -10,6 +10,7 @@
   "files": [
     "bin",
     "dist",
+    "skills",
     "README.md",
     "CONTRIBUTING.md",
     "LICENSE"

@@ -9,6 +9,7 @@ import { formatDoctorReport, parseDoctorTarget, runDoctor, summarizeDoctorStatus
 import { renderTemplateFiles, resolveAppConfig, writeProject } from "../lib/generator.js";
 import { createFallbackSiteMetadata } from "../lib/metadata.js";
 import { findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "../lib/recipes.js";
+import { codexSkillName, getBundledSkillPath } from "../lib/skill.js";
 import { deriveIdentifier, isDirectoryEmpty, normalizeHexColor, slugify, suggestAlternativeOutputDirectory } from "../lib/utils.js";
 
 const tempDirs: string[] = [];
@@ -160,6 +161,13 @@ describe("generator", () => {
     expect(prompt).toContain("http://localhost:3000/");
     expect(prompt).toContain("./desktop/my-app");
     expect(prompt).toContain("npx -y appbun@latest");
+  });
+
+  test("bundled Codex skill is included for agent workflows", () => {
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as { files: string[] };
+    expect(packageJson.files).toContain("skills");
+    expect(codexSkillName).toBe("appbun-web-desktop");
+    expect(existsSync(join(getBundledSkillPath(), "SKILL.md"))).toBe(true);
   });
 
   test("createFallbackSiteMetadata derives defaults from url", () => {

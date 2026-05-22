@@ -18,6 +18,7 @@ import {
 } from "./lib/generator.js";
 import { createFallbackSiteMetadata, fetchSiteMetadata } from "./lib/metadata.js";
 import { appRecipes, findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "./lib/recipes.js";
+import { getBundledSkillPath, installCodexSkill } from "./lib/skill.js";
 import type { CreateCommandOptions, TitlebarStyle } from "./lib/types.js";
 import { clearDirectoryContents, displayPath, isDirectoryEmpty, suggestAlternativeOutputDirectory } from "./lib/utils.js";
 
@@ -44,7 +45,7 @@ program
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
   .showSuggestionAfterError()
   .showHelpAfterError()
-  .version("0.6.0");
+  .version("0.7.0");
 
 program
   .command("create")
@@ -378,6 +379,60 @@ program
     }
   });
 
+program
+  .command("skill")
+  .description("Show or install the bundled Codex skill for packaging web apps with appbun.")
+  .option("--path", "print only the bundled skill directory")
+  .option("--install", "install the skill into CODEX_HOME or ~/.codex")
+  .option("--codex-home <dir>", "Codex home directory; defaults to CODEX_HOME or ~/.codex")
+  .option("--force", "replace an existing installed skill")
+  .addHelpText(
+    "after",
+    `
+
+Examples:
+  $ appbun skill
+  $ appbun skill --path
+  $ appbun skill --install
+  $ appbun skill --install --force
+`,
+  )
+  .action((options: { path?: boolean; install?: boolean; codexHome?: string; force?: boolean }) => {
+    try {
+      if (options.path) {
+        console.log(getBundledSkillPath());
+        return;
+      }
+
+      if (options.install) {
+        const result = installCodexSkill({
+          codexHome: options.codexHome,
+          force: options.force,
+        });
+        console.log(pc.bold(pc.green(result.replaced ? "reinstalled" : "installed")), "appbun Codex skill");
+        console.log(`  source: ${result.sourceDir}`);
+        console.log(`  destination: ${result.destinationDir}`);
+        console.log("");
+        console.log("Use it in Codex with:");
+        console.log("  $appbun-web-desktop package my web app into a desktop app");
+        return;
+      }
+
+      console.log(pc.bold(pc.cyan("appbun Codex skill")));
+      console.log(`  bundled path: ${getBundledSkillPath()}`);
+      console.log("");
+      console.log("Install locally with:");
+      console.log("  appbun skill --install");
+      console.log("");
+      console.log("Then invoke it with:");
+      console.log("  $appbun-web-desktop package my web app into a desktop app");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(pc.bold(pc.red("error")), message);
+      process.exitCode = 1;
+    }
+  });
+
 program.addHelpText(
   "after",
   `
@@ -387,6 +442,7 @@ Commands:
   recipes  List built-in popular app recipes.
   discover Find recipes by concept, name, alias, or description.
   doctor   Check local development and packaging readiness.
+  skill    Show or install the bundled Codex skill.
 
 Run "appbun <command> --help" to see examples and titlebar presets.
 `,

@@ -1,0 +1,8 @@
+interface:
+  display_name: "appbun Web Desktop"
+  short_description: "Package websites as desktop apps"
+  brand_color: "#111827"
+  default_prompt: "Use $appbun-web-desktop to package my web app into an inspectable desktop app."
+
+policy:
+  allow_implicit_invocation: true

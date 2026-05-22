@@ -145,6 +145,22 @@ appbun prompt http://localhost:3000 --name "My App"
 
 That outputs a ready-to-paste instruction block telling the agent to package the current web app into `./desktop/my-app` with `appbun@latest`, then build it.
 
+## Codex skill
+
+`appbun` also ships a Codex skill so web developers can ask an agent to package a website or local frontend as an inspectable desktop app without remembering every command.
+
+```bash
+appbun skill --install
+```
+
+Then invoke it in Codex:
+
+```text
+$appbun-web-desktop package my local web app at http://localhost:3000 as a desktop app
+```
+
+The skill guides the agent through URL selection, `appbun` scaffolding, build verification, `appbun doctor --target ...`, and native-runner packaging expectations for macOS, Windows, and Linux.
+
 ## Built-in recipes
 
 Recipes are shortcuts for popular web apps with a stable URL, display name, theme color, and titlebar choice. They make demos and repeated installs much faster:
