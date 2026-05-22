@@ -4,9 +4,10 @@ import { createInterface } from "node:readline/promises";
 import { spawnSync } from "node:child_process";
 
 import pc from "picocolors";
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 
 import { buildAgentPrompt } from "./lib/agent-prompt.js";
+import { formatDoctorReport, parseDoctorTarget, runDoctor } from "./lib/doctor.js";
 import {
   findLatestDmg,
   installDependencies,
@@ -16,6 +17,7 @@ import {
   writeProject,
 } from "./lib/generator.js";
 import { createFallbackSiteMetadata, fetchSiteMetadata } from "./lib/metadata.js";
+import { appRecipes, findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "./lib/recipes.js";
 import type { CreateCommandOptions, TitlebarStyle } from "./lib/types.js";
 import { clearDirectoryContents, displayPath, isDirectoryEmpty, suggestAlternativeOutputDirectory } from "./lib/utils.js";
 
@@ -32,7 +34,7 @@ const defaultOptions: CreateCommandOptions = {
   quiet: false,
 };
 
-if (looksLikeUrl(process.argv[2])) {
+if (shouldDefaultToCreate(process.argv[2])) {
   process.argv.splice(2, 0, "create");
 }
 
@@ -42,11 +44,11 @@ program
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
   .showSuggestionAfterError()
   .showHelpAfterError()
-  .version("0.5.4");
+  .version("0.6.0");
 
 program
   .command("create")
-  .argument("<url>", "web app URL to wrap")
+  .argument("<target>", "web app URL or built-in recipe slug to wrap")
   .option("-n, --name <name>", "app display name")
   .option("-o, --out-dir <dir>", "output directory")
   .option("--title <title>", "desktop window title")
@@ -78,6 +80,8 @@ Titlebar presets:
   minimal  Same macOS pattern, with lighter metadata and less visible chrome.
 
 Examples:
+  $ appbun chatgpt --dmg
+  $ appbun github --titlebar compact
   $ appbun create https://calendar.google.com --name Calendar --out-dir ./calendar-app
   $ appbun https://linear.app --package-manager npm --install
   $ appbun create https://chat.openai.com --theme-color #10a37f --titlebar compact --width 1600 --height 1000
@@ -86,9 +90,10 @@ Examples:
   $ appbun https://github.com --name GitHub --out-dir ./github --yes
 `,
   )
-  .action(async (url: string, options: CreateCommandOptions) => {
+  .action(async (target: string, options: CreateCommandOptions) => {
     try {
       validatePackageManager(options.packageManager);
+      const { url, options: resolvedRecipeOptions, recipeLabel } = resolveTargetOptions(target, options);
       const userSpecifiedPackageManager = process.argv.includes("--package-manager");
       let usedFallbackMetadata = false;
       const metadata = await fetchSiteMetadata(url).catch((error) => {
@@ -109,7 +114,7 @@ Examples:
         console.log(`  metadata mode: ${usedFallbackMetadata ? "fallback" : "fetched"}`);
       }
 
-      const resolvedOptions = { ...defaultOptions, ...options };
+      const resolvedOptions = { ...defaultOptions, ...resolvedRecipeOptions };
       let config = resolveAppConfig(url, resolvedOptions, metadata);
       config = await resolveInteractiveOutputDirectory(config, resolvedOptions);
 
@@ -120,6 +125,9 @@ Examples:
 
       if (!options.quiet && !userSpecifiedPackageManager && config.packageManager === "npm" && defaultPackageManager === "npm") {
         console.log(pc.bold(pc.cyan("package manager")), `${config.packageManager} (bun not found locally)`);
+      }
+      if (!options.quiet && recipeLabel) {
+        console.log(pc.bold(pc.cyan("recipe")), recipeLabel);
       }
 
       const preparedIcons = await writeProject(config, metadata);
@@ -203,7 +211,7 @@ Examples:
 
 program
   .command("prompt")
-  .argument("<url>", "web app URL to wrap")
+  .argument("<target>", "web app URL or built-in recipe slug to wrap")
   .option("-n, --name <name>", "app display name")
   .option("-o, --out-dir <dir>", "desktop wrapper output directory inside the repo")
   .option("--title <title>", "desktop window title")
@@ -225,13 +233,15 @@ program
     `
 
 Examples:
+  $ appbun prompt chatgpt
   $ appbun prompt http://localhost:3000 --name "My App"
   $ appbun prompt https://staging.example.com --name "Staging App" --titlebar minimal --copy
 `,
   )
-  .action(async (url: string, options: CreateCommandOptions & { copy?: boolean }) => {
+  .action(async (target: string, options: CreateCommandOptions & { copy?: boolean }) => {
     try {
       validatePackageManager(defaultOptions.packageManager);
+      const { url, options: resolvedRecipeOptions, recipeLabel } = resolveTargetOptions(target, options);
       let usedFallbackMetadata = false;
       const metadata = await fetchSiteMetadata(url).catch((error) => {
         usedFallbackMetadata = true;
@@ -245,7 +255,7 @@ Examples:
 
       const resolvedOptions = {
         ...defaultOptions,
-        ...options,
+        ...resolvedRecipeOptions,
         packageManager: defaultOptions.packageManager,
         install: false,
         dmg: false,
@@ -263,6 +273,9 @@ Examples:
 
       if (!options.quiet) {
         console.log(pc.bold(pc.cyan("appbun")), "agent prompt");
+        if (recipeLabel) {
+          console.log(`  recipe: ${recipeLabel}`);
+        }
         console.log(`  title: ${metadata.title ?? "(not found)"}`);
         console.log(`  description: ${metadata.description ?? "(not found)"}`);
         console.log(`  theme color: ${metadata.themeColor ?? "(not found)"}`);
@@ -286,12 +299,94 @@ Examples:
     }
   });
 
+program
+  .command("recipes")
+  .alias("list")
+  .description("List built-in app recipes.")
+  .option("-c, --concept <concept>", "filter recipes by concept, such as ai, design, music, or work")
+  .option("--json", "print recipes as JSON")
+  .action((options: { concept?: string; json?: boolean }) => {
+    const recipes = options.concept ? searchAppRecipes(options.concept) : appRecipes;
+    if (options.json) {
+      console.log(JSON.stringify(recipes, null, 2));
+      return;
+    }
+
+    console.log(pc.bold(pc.cyan(options.concept ? `appbun recipes: ${options.concept}` : "appbun recipes")));
+    if (recipes.length === 0) {
+      console.log(`No recipes found. Try one of: ${listRecipeConcepts().join(", ")}`);
+      return;
+    }
+    console.log(formatRecipeTable(recipes));
+    console.log("");
+    console.log("Use one with:");
+    console.log("  appbun chatgpt --dmg");
+    console.log("  appbun create github --out-dir ./github");
+  });
+
+program
+  .command("discover [query]")
+  .description("Discover recipes by concept, name, alias, or description.")
+  .option("--json", "print matches as JSON")
+  .action((query: string | undefined, options: { json?: boolean }) => {
+    if (!query) {
+      if (options.json) {
+        console.log(JSON.stringify(listRecipeConcepts(), null, 2));
+        return;
+      }
+
+      console.log(pc.bold(pc.cyan("appbun concepts")));
+      console.log(formatConceptTable());
+      console.log("");
+      console.log("Search with:");
+      console.log("  appbun discover ai");
+      console.log("  appbun discover design");
+      console.log("  appbun recipes --concept music");
+      return;
+    }
+
+    const recipes = searchAppRecipes(query);
+    if (options.json) {
+      console.log(JSON.stringify(recipes, null, 2));
+      return;
+    }
+
+    console.log(pc.bold(pc.cyan(`appbun discover: ${query}`)));
+    if (recipes.length === 0) {
+      console.log(`No recipes found. Try one of: ${listRecipeConcepts().join(", ")}`);
+      return;
+    }
+    console.log(formatRecipeTable(recipes));
+  });
+
+program
+  .command("doctor")
+  .description("Check the local appbun development and packaging environment.")
+  .option("--target <target>", "check packaging readiness for macos, windows, or linux", parseDoctorTargetOption)
+  .option("--json", "print the report as JSON")
+  .option("--strict", "exit non-zero for warnings as well as failures")
+  .action((options: { target?: ReturnType<typeof parseDoctorTarget>; json?: boolean; strict?: boolean }) => {
+    const report = runDoctor(options.target);
+    if (options.json) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      console.log(colorDoctorReport(formatDoctorReport(report)));
+    }
+
+    if (report.status === "fail" || (options.strict && report.status !== "ok")) {
+      process.exitCode = 1;
+    }
+  });
+
 program.addHelpText(
   "after",
   `
 Commands:
   create   Scaffold a desktop wrapper project from a URL.
   prompt   Print a ready-to-paste instruction block for another coding agent.
+  recipes  List built-in popular app recipes.
+  discover Find recipes by concept, name, alias, or description.
+  doctor   Check local development and packaging readiness.
 
 Run "appbun <command> --help" to see examples and titlebar presets.
 `,
@@ -321,6 +416,15 @@ function parseTitlebar(value: string): TitlebarStyle {
   throw new Error(`Invalid titlebar style: ${value}. Use system, unified, compact, or minimal.`);
 }
 
+function parseDoctorTargetOption(value: string): ReturnType<typeof parseDoctorTarget> {
+  try {
+    return parseDoctorTarget(value);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new InvalidArgumentError(message);
+  }
+}
+
 function validatePackageManager(value: string): asserts value is "bun" | "npm" {
   if (value !== "bun" && value !== "npm") {
     throw new Error(`Unsupported package manager: ${value}`);
@@ -344,6 +448,76 @@ function looksLikeUrl(value?: string): boolean {
   }
 
   return /^https?:\/\//i.test(value);
+}
+
+function shouldDefaultToCreate(value?: string): boolean {
+  if (!value || value.startsWith("-")) {
+    return false;
+  }
+
+  if (looksLikeUrl(value)) {
+    return true;
+  }
+
+  if (findAppRecipe(value)) {
+    return true;
+  }
+
+  return false;
+}
+
+function resolveTargetOptions<T extends Partial<CreateCommandOptions>>(
+  target: string,
+  options: T,
+): { url: string; options: T; recipeLabel?: string } {
+  if (looksLikeUrl(target)) {
+    return { url: target, options };
+  }
+
+  const recipe = findAppRecipe(target);
+  if (!recipe) {
+    const suggestions = searchAppRecipes(target).slice(0, 3).map((match) => match.slug);
+    const suffix = suggestions.length > 0
+      ? ` Did you mean: ${suggestions.join(", ")}?`
+      : ` Run "appbun discover" to see related concepts.`;
+    throw new Error(`Unknown recipe or URL: ${target}.${suffix}`);
+  }
+
+  return {
+    url: recipe.url,
+    recipeLabel: `${recipe.slug} (${recipe.name})`,
+    options: {
+      ...options,
+      name: options.name ?? recipe.name,
+      description: options.description ?? recipe.description,
+      themeColor: options.themeColor ?? recipe.themeColor,
+      titlebar: userPassedOption("--titlebar") ? options.titlebar : (recipe.titlebar ?? options.titlebar),
+      width: userPassedOption("--width") ? options.width : (recipe.width ?? options.width),
+      height: userPassedOption("--height") ? options.height : (recipe.height ?? options.height),
+    },
+  };
+}
+
+function userPassedOption(flag: string): boolean {
+  return process.argv.includes(flag) || process.argv.some((arg) => arg.startsWith(`${flag}=`));
+}
+
+function colorDoctorReport(report: string): string {
+  return report
+    .split("\n")
+    .map((line) => {
+      if (line.startsWith("ok ")) {
+        return pc.green(line);
+      }
+      if (line.startsWith("warn ")) {
+        return pc.yellow(line);
+      }
+      if (line.startsWith("fail ")) {
+        return pc.red(line);
+      }
+      return line;
+    })
+    .join("\n");
 }
 
 async function resolveInteractiveOutputDirectory(

@@ -13,6 +13,8 @@
 
 macOS, Windows, Linux를 지원합니다.
 
+프로젝트 목표: [Pake-grade goal](docs/pake-grade-goal.md).
+
 ![appbun social card](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/social-card.png)
 
 ## 왜 appbun인가
@@ -69,7 +71,37 @@ bun run build
 appbun https://chat.openai.com --name "ChatGPT" --titlebar compact --dmg
 ```
 
+가장 짧은 명령이 필요하면 내장 레시피를 바로 쓸 수 있습니다:
+
+```bash
+appbun chatgpt --dmg
+appbun github --out-dir ./github
+appbun recipes
+appbun discover design
+```
+
 ## CLI 예시
+
+인기 레시피 목록 보기:
+
+```bash
+appbun recipes
+appbun recipes --concept music
+```
+
+레시피 slug로 생성하기:
+
+```bash
+appbun linear --dmg
+```
+
+개념, alias, 설명으로 관련 앱 찾기:
+
+```bash
+appbun discover ai
+appbun discover design
+appbun discover gcal
+```
 
 ```bash
 appbun https://github.com --name "GitHub"
@@ -112,6 +144,38 @@ appbun prompt http://localhost:3000 --name "My App"
 ```
 
 그러면 에이전트가 현재 웹앱을 `./desktop/my-app` 아래에 `appbun@latest`로 패키징하고 빌드하게 만드는 지시문이 출력됩니다.
+
+## 내장 레시피
+
+레시피는 안정적인 URL, 표시 이름, 테마 색상, titlebar 선택을 미리 담아 둔 인기 웹앱 shortcut입니다. 데모와 반복 설치가 훨씬 짧아집니다:
+
+```bash
+appbun chatgpt --dmg
+appbun ytmusic --titlebar minimal
+appbun recipes --json
+```
+
+현재 ChatGPT, GitHub, Linear, Notion, YouTube, YouTube Music, Excalidraw, Photopea, Squoosh, Desmos 레시피가 포함되어 있습니다. 대상이 잘 알려져 있고 안정적이라면 레시피 기여도 환영합니다.
+
+`appbun discover`로 `ai`, `chat`, `design`, `developer`, `docs`, `education`, `music`, `productivity`, `work` 같은 개념을 둘러볼 수 있습니다.
+
+## Doctor
+
+이슈를 올리거나 생성된 프로젝트를 디버깅하기 전에 먼저 실행해보세요:
+
+```bash
+appbun doctor
+```
+
+자동화나 이슈 템플릿에 붙일 때는:
+
+```bash
+appbun doctor --json
+appbun doctor --strict
+appbun doctor --target linux
+```
+
+doctor는 Node.js, Bun, npm, Git, 플랫폼별 패키징 준비 상태를 확인합니다. native runner에서 릴리스 빌드를 준비할 때는 `--target macos`, `--target windows`, `--target linux`를 사용할 수 있습니다. 애매한 버그 리포트가 생기기 전에 설정 문제를 먼저 드러내는 것이 목적입니다.
 
 ## 윈도우 chrome 프리셋
 
@@ -178,9 +242,13 @@ appbun https://example.com --package-manager npm
 
 ```text
 my-app/
+├── .github/
+│   └── workflows/
+│       └── release.yml    # native-runner artifact build workflow
 ├── assets/                 # 패키징용으로 정리된 아이콘 자산
 ├── icon.iconset/           # macOS iconset 크기들 (16~1024)
 ├── scripts/
+│   ├── build-platform.mjs  # 플랫폼 빌드용 native-runner guard
 │   └── create-dmg.mjs      # macOS DMG helper
 ├── src/
 │   ├── bun/
@@ -208,7 +276,15 @@ my-app/
 
 ### Windows 와 Linux
 
-생성된 Electrobun 프로젝트는 이미 빌드 가능합니다. 현재 `appbun`은 이 플랫폼들에서는 표준 네이티브 title bar를 유지하고, 우선 macOS 설치 자동화에 집중하고 있습니다. Windows/Linux 패키징 helper는 로드맵에 있습니다.
+생성된 Electrobun 프로젝트에는 플랫폼별 native-runner 패키징 스크립트가 기본 포함됩니다:
+
+- Windows에서는 `bun run build:windows`
+- Linux에서는 `bun run build:linux`
+- macOS에서는 `bun run build:macos`
+
+Electrobun 빌드는 대상 플랫폼의 native runner에서 실행하는 것을 기준으로 합니다. `bun run build:all`은 로컬 cross-compile 명령이 아니라 CI matrix를 떠올리게 하는 안내용 명령입니다. Windows/Linux installer helper는 아직 로드맵에 있습니다.
+
+생성 프로젝트에는 `.github/workflows/release.yml`도 포함됩니다. 이 workflow는 수동 실행 또는 GitHub Release 발행 시 macOS, Windows, Linux GitHub-hosted runner에서 artifact를 빌드합니다.
 
 ## 로컬 개발
 

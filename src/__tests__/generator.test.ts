@@ -5,8 +5,10 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 
 import { buildAgentPrompt } from "../lib/agent-prompt.js";
+import { formatDoctorReport, parseDoctorTarget, runDoctor, summarizeDoctorStatus } from "../lib/doctor.js";
 import { renderTemplateFiles, resolveAppConfig, writeProject } from "../lib/generator.js";
 import { createFallbackSiteMetadata } from "../lib/metadata.js";
+import { findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "../lib/recipes.js";
 import { deriveIdentifier, isDirectoryEmpty, normalizeHexColor, slugify, suggestAlternativeOutputDirectory } from "../lib/utils.js";
 
 const tempDirs: string[] = [];
@@ -57,6 +59,71 @@ describe("utils", () => {
 });
 
 describe("generator", () => {
+  test("doctor summary promotes the highest severity", () => {
+    expect(summarizeDoctorStatus([{ name: "A", status: "ok", message: "ready" }])).toBe("ok");
+    expect(summarizeDoctorStatus([
+      { name: "A", status: "ok", message: "ready" },
+      { name: "B", status: "warn", message: "missing optional tool" },
+    ])).toBe("warn");
+    expect(summarizeDoctorStatus([
+      { name: "A", status: "warn", message: "missing optional tool" },
+      { name: "B", status: "fail", message: "missing required tool" },
+    ])).toBe("fail");
+  });
+
+  test("doctor report is readable in plain terminals", () => {
+    const report = formatDoctorReport({
+      status: "warn",
+      platform: "test",
+      checks: [
+        { name: "Node.js", status: "ok", message: "v20.0.0" },
+        { name: "Bun", status: "warn", message: "not found" },
+      ],
+    });
+
+    expect(report).toContain("appbun doctor (test)");
+    expect(report).toContain("ok Node.js");
+    expect(report).toContain("warn Bun");
+  });
+
+  test("doctor supports packaging targets", () => {
+    const report = runDoctor("linux");
+    expect(report.target).toBe("linux");
+    expect(report.checks.some((check) => check.name === "Packaging target")).toBe(true);
+  });
+
+  test("doctor rejects unknown packaging targets", () => {
+    expect(() => parseDoctorTarget("android")).toThrow("Invalid doctor target");
+  });
+
+  test("built-in recipes resolve popular app aliases", () => {
+    expect(findAppRecipe("chatgpt")?.url).toBe("https://chat.openai.com/");
+    expect(findAppRecipe("gpt")?.name).toBe("ChatGPT");
+    expect(findAppRecipe("ytmusic")?.slug).toBe("youtube-music");
+    expect(findAppRecipe("unknown-app")).toBeUndefined();
+  });
+
+  test("recipe table is CLI friendly", () => {
+    const table = formatRecipeTable();
+    expect(table).toContain("recipe");
+    expect(table).toContain("chatgpt");
+    expect(table).toContain("github");
+  });
+
+  test("recipes can be discovered by related concepts", () => {
+    expect(listRecipeConcepts()).toContain("design");
+    expect(searchAppRecipes("ai").map((recipe) => recipe.slug)).toContain("chatgpt");
+    expect(searchAppRecipes("music").map((recipe) => recipe.slug)).toContain("youtube-music");
+    expect(searchAppRecipes("gcal").map((recipe) => recipe.slug)).toContain("google-calendar");
+  });
+
+  test("concept table groups recipes by theme", () => {
+    const table = formatConceptTable();
+    expect(table).toContain("concept");
+    expect(table).toContain("design");
+    expect(table).toContain("figma");
+  });
+
   test("buildAgentPrompt targets an existing web app repo workflow", () => {
     const config = resolveAppConfig(
       "http://localhost:3000",
@@ -150,11 +217,16 @@ describe("generator", () => {
     );
 
     const files = renderTemplateFiles(config, {});
+    expect(files.some((file) => file.path === ".github/workflows/release.yml")).toBe(true);
     expect(files.some((file) => file.path === "src/bun/index.ts")).toBe(true);
     expect(files.some((file) => file.path === "src/mainview/index.ts")).toBe(true);
+    expect(files.some((file) => file.path === "scripts/build-platform.mjs")).toBe(true);
     expect(files.some((file) => file.path === "scripts/create-dmg.mjs")).toBe(true);
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("site-origin");
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("--shell-toolbar-height: 40px");
+    expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:windows": "node scripts/build-platform.mjs windows"');
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("Cross-platform packaging");
+    expect(files.find((file) => file.path === ".github/workflows/release.yml")?.content).toContain("windows-latest");
   });
 
   test("system titlebar preset falls back to native chrome", () => {
@@ -313,13 +385,18 @@ describe("generator", () => {
     });
 
     expect(existsSync(join(config.outDir, "electrobun.config.ts"))).toBe(true);
+    expect(existsSync(join(config.outDir, ".github", "workflows", "release.yml"))).toBe(true);
     expect(existsSync(join(config.outDir, "assets", "icon.ico"))).toBe(true);
     expect(existsSync(join(config.outDir, "icon.iconset", "icon_512x512.png"))).toBe(true);
+    expect(existsSync(join(config.outDir, "scripts", "build-platform.mjs"))).toBe(true);
     expect(existsSync(join(config.outDir, "scripts", "create-dmg.mjs"))).toBe(true);
     expect(readFileSync(join(config.outDir, "src", "bun", "index.ts"), "utf8")).toContain("views://mainview/index.html");
     expect(readFileSync(join(config.outDir, "src", "mainview", "index.ts"), "utf8")).toContain("https://example.com/");
     expect(readFileSync(join(config.outDir, "src", "mainview", "index.ts"), "utf8")).toContain("example.com");
     expect(readFileSync(join(config.outDir, "package.json"), "utf8")).toContain("\"build:dmg\"");
+    expect(readFileSync(join(config.outDir, "package.json"), "utf8")).toContain("\"build:linux\"");
+    expect(readFileSync(join(config.outDir, "README.md"), "utf8")).toContain("Electrobun builds should run on a native runner");
+    expect(readFileSync(join(config.outDir, ".github", "workflows", "release.yml"), "utf8")).toContain("actions/upload-artifact@v4");
     expect(icons.sourceUrl).toBe(svgIconDataUrl);
   }, 10000);
 });

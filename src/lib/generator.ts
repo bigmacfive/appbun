@@ -107,9 +107,11 @@ export function renderTemplateFiles(config: ResolvedAppConfig, icons: PreparedIc
   return [
     { path: ".gitignore", content: generatedGitignore() },
     { path: "README.md", content: generatedReadme(config, icons) },
+    { path: ".github/workflows/release.yml", content: generatedReleaseWorkflow(config) },
     { path: "package.json", content: generatedPackageJson(config) },
     { path: "tsconfig.json", content: generatedTsconfig() },
     { path: "electrobun.config.ts", content: generatedElectrobunConfig(config, icons) },
+    { path: "scripts/build-platform.mjs", content: generatedBuildPlatformScript() },
     { path: "scripts/create-dmg.mjs", content: generatedCreateDmgScript(config) },
     { path: "src/bun/index.ts", content: generatedBunEntry(config) },
     { path: "src/mainview/index.html", content: generatedMainviewHtml(config) },
@@ -144,9 +146,14 @@ function generatedPackageJson(config: ResolvedAppConfig): string {
       start: "electrobun dev",
       dev: "electrobun dev --watch",
       build: "electrobun build",
+      "build:current": "electrobun build",
       "build:dmg": `${packageManagerRun} build:stable && node scripts/create-dmg.mjs`,
       "build:canary": "electrobun build --env=canary",
-      "build:stable": "electrobun build --env=stable"
+      "build:stable": "electrobun build --env=stable",
+      "build:macos": "node scripts/build-platform.mjs macos",
+      "build:windows": "node scripts/build-platform.mjs windows",
+      "build:linux": "node scripts/build-platform.mjs linux",
+      "build:all": "node scripts/build-platform.mjs all"
     },
     dependencies: {
       electrobun: "1.15.1"
@@ -156,6 +163,94 @@ function generatedPackageJson(config: ResolvedAppConfig): string {
       "create-dmg": "^8.0.0"
     }
   });
+}
+
+function generatedBuildPlatformScript(): string {
+  return `import { spawnSync } from "node:child_process";
+
+const target = process.argv[2];
+const supportedTargets = ["macos", "windows", "linux"];
+
+if (target === "all") {
+  console.error("build:all is a CI matrix hint, not a local cross-compile command.");
+  console.error("Run build:stable on native macOS, Windows, and Linux runners to produce platform artifacts.");
+  process.exit(1);
+}
+
+if (!supportedTargets.includes(target)) {
+  console.error("Usage: node scripts/build-platform.mjs <macos|windows|linux>");
+  process.exit(1);
+}
+
+const hostTarget = process.platform === "darwin"
+  ? "macos"
+  : process.platform === "win32"
+    ? "windows"
+    : "linux";
+
+if (hostTarget !== target) {
+  console.error(\`Electrobun builds should run on a native runner for this platform. Requested \${target}, current runner is \${hostTarget}.\`);
+  process.exit(1);
+}
+
+const command = process.platform === "win32" ? "npx.cmd" : "npx";
+const result = spawnSync(command, ["electrobun", "build", "--env=stable"], {
+  stdio: "inherit",
+  shell: process.platform === "win32",
+});
+
+process.exit(result.status ?? 1);
+`;
+}
+
+function generatedReleaseWorkflow(config: ResolvedAppConfig): string {
+  const installCommand = config.packageManager === "bun" ? "bun install" : "npm install";
+  const stableBuildCommand = config.packageManager === "bun" ? "bun run build:stable" : "npm run build:stable";
+  const dmgBuildCommand = config.packageManager === "bun" ? "bun run build:dmg" : "npm run build:dmg";
+
+  return `name: Build desktop artifacts
+
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    name: Build \${{ matrix.target }}
+    runs-on: \${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos
+            os: macos-latest
+          - target: windows
+            os: windows-latest
+          - target: linux
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: ${installCommand}
+      - name: Build stable app
+        run: ${stableBuildCommand}
+      - name: Build macOS DMG
+        if: matrix.target == 'macos'
+        run: ${dmgBuildCommand}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${config.slug}-\${{ matrix.target }}
+          path: |
+            build/**
+          if-no-files-found: error
+`;
 }
 
 function generatedTsconfig(): string {
@@ -565,6 +660,10 @@ function generatedReadme(config: ResolvedAppConfig, icons: PreparedIconAssets): 
   const devCommand = config.packageManager === "bun" ? "bun run dev" : "npm run dev";
   const buildCommand = config.packageManager === "bun" ? "bun run build" : "npm run build";
   const dmgCommand = config.packageManager === "bun" ? "bun run build:dmg" : "npm run build:dmg";
+  const macosCommand = config.packageManager === "bun" ? "bun run build:macos" : "npm run build:macos";
+  const windowsCommand = config.packageManager === "bun" ? "bun run build:windows" : "npm run build:windows";
+  const linuxCommand = config.packageManager === "bun" ? "bun run build:linux" : "npm run build:linux";
+  const allCommand = config.packageManager === "bun" ? "bun run build:all" : "npm run build:all";
 
   return `# ${config.name}
 
@@ -578,6 +677,19 @@ ${devCommand}
 ${buildCommand}
 ${dmgCommand}
 \`\`\`
+
+## Cross-platform packaging
+
+Electrobun builds should run on a native runner for the target platform. Use the same project on each OS instead of treating local builds as cross-compilation.
+
+- macOS runner or machine: \`${macosCommand}\`
+- macOS DMG installer: \`${dmgCommand}\`
+- Windows runner or machine: \`${windowsCommand}\`
+- Linux runner or machine: \`${linuxCommand}\`
+
+\`${allCommand}\` is intentionally a reminder for CI matrix builds. It does not cross-compile locally; run \`build:stable\` on native macOS, Windows, and Linux runners to produce release artifacts.
+
+This project also includes \`.github/workflows/release.yml\`. Run it manually from GitHub Actions or publish a GitHub Release to build macOS, Windows, and Linux artifacts on native runners and upload them as workflow artifacts.
 
 ## Configuration
 
@@ -593,7 +705,9 @@ ${dmgCommand}
 
 - \`src/bun/index.ts\`: creates the Electrobun window and loads the local shell
 - \`src/mainview/\`: the unified shell header and embedded webview
+- \`scripts/build-platform.mjs\`: guards platform-specific stable builds so they run on native runners
 - \`scripts/create-dmg.mjs\`: creates a drag-to-Applications DMG on macOS
+- \`.github/workflows/release.yml\`: builds release artifacts on macOS, Windows, and Linux GitHub-hosted runners
 - \`electrobun.config.ts\`: app metadata and platform packaging settings
 - \`assets/icon.*\`: site-derived icons when available
 

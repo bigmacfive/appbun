@@ -13,6 +13,8 @@ Turn any webpage into a desktop app with one command. `appbun` wraps a URL in an
 
 Supports macOS, Windows, and Linux.
 
+Project ambition: [Pake-grade goal](docs/pake-grade-goal.md).
+
 ![appbun social card](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/social-card.png)
 
 ## Why appbun
@@ -69,7 +71,37 @@ Need a tighter macOS chrome right away:
 appbun https://chat.openai.com --name "ChatGPT" --titlebar compact --dmg
 ```
 
+Or use a built-in recipe when you want the shortest possible command:
+
+```bash
+appbun chatgpt --dmg
+appbun github --out-dir ./github
+appbun recipes
+appbun discover design
+```
+
 ## CLI examples
+
+List popular recipes:
+
+```bash
+appbun recipes
+appbun recipes --concept music
+```
+
+Create from a recipe slug:
+
+```bash
+appbun linear --dmg
+```
+
+Find related apps by concept, alias, or description:
+
+```bash
+appbun discover ai
+appbun discover design
+appbun discover gcal
+```
 
 ```bash
 appbun https://github.com --name "GitHub"
@@ -112,6 +144,38 @@ appbun prompt http://localhost:3000 --name "My App"
 ```
 
 That outputs a ready-to-paste instruction block telling the agent to package the current web app into `./desktop/my-app` with `appbun@latest`, then build it.
+
+## Built-in recipes
+
+Recipes are shortcuts for popular web apps with a stable URL, display name, theme color, and titlebar choice. They make demos and repeated installs much faster:
+
+```bash
+appbun chatgpt --dmg
+appbun ytmusic --titlebar minimal
+appbun recipes --json
+```
+
+Current recipes include ChatGPT, GitHub, Linear, Notion, YouTube, YouTube Music, Excalidraw, Photopea, Squoosh, and Desmos. Recipe contributions are welcome when the target is recognizable and stable.
+
+Use `appbun discover` to browse concepts such as `ai`, `chat`, `design`, `developer`, `docs`, `education`, `music`, `productivity`, and `work`.
+
+## Doctor
+
+Before filing an issue or debugging a generated project, run:
+
+```bash
+appbun doctor
+```
+
+For automation or issue templates:
+
+```bash
+appbun doctor --json
+appbun doctor --strict
+appbun doctor --target linux
+```
+
+The doctor checks Node.js, Bun, npm, Git, and platform packaging readiness. Use `--target macos`, `--target windows`, or `--target linux` when preparing release builds on native runners. It is meant to make setup problems obvious before they become vague bug reports.
 
 ## Window chrome presets
 
@@ -178,9 +242,13 @@ More detail lives in [docs/showcase/README.md](docs/showcase/README.md).
 
 ```text
 my-app/
+├── .github/
+│   └── workflows/
+│       └── release.yml    # native-runner artifact build workflow
 ├── assets/                 # Derived icon assets for packaging
 ├── icon.iconset/           # macOS iconset sizes (16 through 1024)
 ├── scripts/
+│   ├── build-platform.mjs  # native-runner guard for platform builds
 │   └── create-dmg.mjs      # macOS DMG helper
 ├── src/
 │   ├── bun/
@@ -208,7 +276,15 @@ Generated apps can use:
 
 ### Windows and Linux
 
-The generated Electrobun project is already buildable there. `appbun` keeps the standard native title bar on those platforms today and focuses its installer automation on macOS first; Windows and Linux packaging helpers are still on the roadmap.
+The generated Electrobun project includes native-runner packaging scripts for each platform:
+
+- `bun run build:windows` on Windows
+- `bun run build:linux` on Linux
+- `bun run build:macos` on macOS
+
+Electrobun builds should run on a native runner for the target platform. `bun run build:all` is intentionally a CI matrix reminder, not a local cross-compile command. Windows and Linux installer helpers are still on the roadmap.
+
+Generated projects also include `.github/workflows/release.yml`, which builds artifacts on macOS, Windows, and Linux GitHub-hosted runners when run manually or when a GitHub Release is published.
 
 ## Local development
 
