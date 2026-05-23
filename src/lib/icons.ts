@@ -38,6 +38,14 @@ interface FetchedIconAsset {
 }
 
 export async function prepareIconAssets(targetDir: string, metadata: SiteMetadata): Promise<PreparedIconAssets> {
+  try {
+    return await prepareIconAssetsUnsafe(targetDir, metadata);
+  } catch {
+    return {};
+  }
+}
+
+async function prepareIconAssetsUnsafe(targetDir: string, metadata: SiteMetadata): Promise<PreparedIconAssets> {
   const assetsDir = join(targetDir, "assets");
   const iconsetDir = join(targetDir, "icon.iconset");
   await mkdir(assetsDir, { recursive: true });

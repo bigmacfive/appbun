@@ -16,6 +16,7 @@ export interface CreateCommandOptions {
   packageManager: PackageManager;
   install: boolean;
   dmg: boolean;
+  icon?: boolean;
   yes: boolean;
   showConfig: boolean;
   quiet: boolean;

@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import type {
@@ -54,19 +54,29 @@ export function resolveAppConfig(url: string, options: CreateCommandOptions, met
 
 export async function writeProject(config: ResolvedAppConfig, metadata: SiteMetadata): Promise<PreparedIconAssets> {
   const safeOutDir = ensureSafeOutputDirectory(config.outDir);
-  await mkdir(safeOutDir, { recursive: true });
-  const preparedIcons = await prepareIconAssets(safeOutDir, metadata);
+  const parentDir = dirname(safeOutDir);
+  await mkdir(parentDir, { recursive: true });
+  const tempDir = await mkdtemp(join(parentDir, ".appbun-create-"));
 
-  for (const file of renderTemplateFiles(config, preparedIcons)) {
-    const outputPath = resolve(safeOutDir, file.path);
-    const parentDir = outputPath.slice(0, Math.max(outputPath.lastIndexOf("/"), outputPath.lastIndexOf("\\")));
-    if (parentDir) {
-      await mkdir(parentDir, { recursive: true });
+  try {
+    const preparedIcons = await prepareIconAssets(tempDir, metadata);
+
+    for (const file of renderTemplateFiles(config, preparedIcons)) {
+      const outputPath = resolve(tempDir, file.path);
+      const fileParentDir = outputPath.slice(0, Math.max(outputPath.lastIndexOf("/"), outputPath.lastIndexOf("\\")));
+      if (fileParentDir) {
+        await mkdir(fileParentDir, { recursive: true });
+      }
+      await writeFile(outputPath, file.content);
     }
-    await writeFile(outputPath, file.content);
-  }
 
-  return preparedIcons;
+    await rm(safeOutDir, { recursive: true, force: true });
+    await rename(tempDir, safeOutDir);
+    return preparedIcons;
+  } catch (error) {
+    await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    throw error;
+  }
 }
 
 export function installDependencies(config: ResolvedAppConfig): void {

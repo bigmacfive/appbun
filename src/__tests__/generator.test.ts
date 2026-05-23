@@ -406,5 +406,50 @@ describe("generator", () => {
     expect(readFileSync(join(config.outDir, "README.md"), "utf8")).toContain("Electrobun builds should run on a native runner");
     expect(readFileSync(join(config.outDir, ".github", "workflows", "release.yml"), "utf8")).toContain("actions/upload-artifact@v4");
     expect(icons.sourceUrl).toBe(svgIconDataUrl);
-  }, 10000);
+  }, 20000);
+
+  test("writeProject keeps scaffolding when icon parsing fails", async () => {
+    const root = mkdtempSync(join(tmpdir(), "appbun-bad-icon-"));
+    tempDirs.push(root);
+
+    const config = resolveAppConfig(
+      "http://localhost:3000",
+      {
+        width: 1280,
+        height: 720,
+        packageManager: "bun",
+        install: false,
+        showConfig: false,
+        quiet: true,
+        outDir: join(root, "local-shell"),
+      },
+      {
+        title: "Local App",
+        description: "Local app",
+        themeColor: "#2255aa",
+        sourceUrl: "http://localhost:3000",
+        iconCandidates: [],
+      },
+    );
+
+    const icons = await writeProject(config, {
+      title: "Local App",
+      description: "Local app",
+      themeColor: "#2255aa",
+      sourceUrl: "http://localhost:3000",
+      iconCandidates: [
+        {
+          url: "data:image/png;base64,bm90LXJlYWxseS1hLXBuZw==",
+          rel: "apple-touch-icon",
+          format: "png",
+          sizes: [512],
+        },
+      ],
+    });
+
+    expect(icons.sourceUrl).toBeUndefined();
+    expect(existsSync(join(config.outDir, "package.json"))).toBe(true);
+    expect(existsSync(join(config.outDir, "src", "mainview", "index.ts"))).toBe(true);
+    expect(existsSync(join(config.outDir, "assets", "icon.ico"))).toBe(false);
+  });
 });

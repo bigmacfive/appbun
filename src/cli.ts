@@ -30,6 +30,7 @@ const defaultOptions: CreateCommandOptions = {
   packageManager: defaultPackageManager,
   install: false,
   dmg: false,
+  icon: true,
   yes: false,
   showConfig: false,
   quiet: false,
@@ -67,6 +68,7 @@ program
   .option("--package-manager <pm>", "install command for the generated app: bun or npm", defaultOptions.packageManager)
   .option("--install", "install generated app dependencies")
   .option("--dmg", "on macOS: install dependencies, build a DMG, and open it")
+  .option("--no-icon", "skip fetching and generating icon assets")
   .option("-y, --yes", "accept interactive prompts automatically")
   .option("--show-config", "print resolved config before writing files")
   .option("--quiet", "reduce output")
@@ -109,7 +111,7 @@ Examples:
       if (!options.quiet) {
         console.log(pc.bold(pc.cyan("appbun")), "resolved metadata");
         console.log(`  title: ${metadata.title ?? "(not found)"}`);
-        console.log(`  description: ${metadata.description ?? "(not found)"}`);
+        console.log(`  fetched description: ${metadata.description ?? "(not found)"}`);
         console.log(`  theme color: ${metadata.themeColor ?? "(not found)"}`);
         console.log(`  icon candidates: ${metadata.iconCandidates.length}`);
         console.log(`  metadata mode: ${usedFallbackMetadata ? "fallback" : "fetched"}`);
@@ -122,6 +124,8 @@ Examples:
       if (options.showConfig) {
         console.log(pc.bold(pc.green("resolved config")));
         console.log(JSON.stringify(config, null, 2));
+      } else if (!options.quiet && options.description?.trim()) {
+        console.log(pc.bold(pc.cyan("config")), `description: ${config.description}`);
       }
 
       if (!options.quiet && !userSpecifiedPackageManager && config.packageManager === "npm" && defaultPackageManager === "npm") {
@@ -131,11 +135,13 @@ Examples:
         console.log(pc.bold(pc.cyan("recipe")), recipeLabel);
       }
 
-      const preparedIcons = await writeProject(config, metadata);
+      const shouldSkipIcons = resolvedOptions.icon === false;
+      const iconMetadata = shouldSkipIcons ? { ...metadata, iconCandidates: [] } : metadata;
+      const preparedIcons = await writeProject(config, iconMetadata);
 
       if (!options.quiet) {
         console.log(pc.bold(pc.green("created")), config.outDir);
-        console.log(`  icon source: ${preparedIcons.sourceUrl ?? "(not resolved)"}`);
+        console.log(`  icon source: ${shouldSkipIcons ? "(skipped)" : preparedIcons.sourceUrl ?? "(not resolved)"}`);
       }
 
       const shouldInstall = (options.install || options.dmg)
