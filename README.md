@@ -17,6 +17,8 @@ Project ambition: [Pake-grade goal](docs/pake-grade-goal.md).
 
 ![appbun social card](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/social-card.png)
 
+![appbun terminal demo](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/terminal-demo.gif)
+
 ## Why appbun
 
 `appbun` exists for the same reason people reach for Pake: the fast `URL -> desktop app` workflow is useful.
