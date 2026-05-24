@@ -18,4 +18,5 @@ jobs:
       - run: bun run build
       - run: node ./bin/appbun.js https://example.com --name Example --out-dir ./tmp/example --quiet
       - run: test -f ./tmp/example/electrobun.config.ts
-      - run: test -f ./tmp/example/assets/icon.ico
+      - run: test -f ./tmp/example/package.json
+      - run: test -f ./tmp/example/src/mainview/index.ts
