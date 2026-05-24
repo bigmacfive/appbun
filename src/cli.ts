@@ -46,7 +46,7 @@ program
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
   .showSuggestionAfterError()
   .showHelpAfterError()
-  .version("0.7.0");
+  .version("0.7.1");
 
 program
   .command("create")

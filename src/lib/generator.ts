@@ -166,7 +166,7 @@ function generatedPackageJson(config: ResolvedAppConfig): string {
       "build:all": "node scripts/build-platform.mjs all"
     },
     dependencies: {
-      electrobun: "1.15.1"
+      electrobun: "1.18.1"
     },
     devDependencies: {
       "@types/bun": "latest",
