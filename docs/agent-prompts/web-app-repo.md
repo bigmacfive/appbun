@@ -21,7 +21,8 @@ Rules:
 - Prefer a dedicated output directory outside this source repo, such as ../appbun-output/[APP_SLUG].
 - If the wrapper must live inside this repo, commit or back up the source app before installing or building it.
 - If the URL points to a local dev server, make sure the dev server is running and reachable before packaging.
-- If local favicon or manifest icons fail during scaffolding, rerun with `--no-icon` and add icons manually later.
+- If the local URL is unclear but the dev server is already running, prefer `npx -y appbun@latest dev --name "[APP_NAME]" --out-dir ../appbun-output/[APP_SLUG] --yes`.
+- appbun creates fallback icons when site icons are missing or broken; only use `--no-icon` when the user explicitly wants to skip icon generation.
 - Keep the generated project inspectable and editable.
 - Preserve site branding and icon metadata when available.
 - If the output directory already exists, prefer a safe non-destructive path or explicit confirmation.
@@ -34,13 +35,14 @@ Execution plan:
    # If icon parsing fails, rerun the same command with --no-icon.
 3. Change into the generated wrapper directory:
    cd ../appbun-output/[APP_SLUG]
-4. Install dependencies:
-   bun install
-5. Build the desktop wrapper:
-   bun run build
+4. Diagnose the generated project:
+   npx -y appbun@latest doctor --project
+5. Install dependencies and build the desktop wrapper:
+   npx -y appbun@latest package --install
 6. On macOS, also build the DMG only after the normal build succeeds and the source repo is backed up:
-   bun run build:dmg
-7. If useful, add a short README note explaining how to rebuild the desktop wrapper.
+   npx -y appbun@latest package --dmg
+7. For signed or notarized distribution, use `package --dmg --sign` or `package --notarize` only when Apple signing/notary env vars are available.
+8. If useful, add a short README note explaining how to rebuild the desktop wrapper.
 
 When you reply, include:
 - what command you ran

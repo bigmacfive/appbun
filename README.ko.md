@@ -163,10 +163,11 @@ appbun prompt http://localhost:3000 --name "My App"
 
 ## Codex 스킬
 
-`appbun`은 Codex 스킬도 함께 제공합니다. 웹 개발자가 매번 명령을 외우지 않아도, 에이전트에게 웹사이트나 로컬 프론트엔드를 inspect 가능한 데스크톱 앱으로 패키징하라고 맡길 수 있습니다.
+`appbun`은 Codex와 Claude Code용 에이전트 지침도 함께 제공합니다. 웹 개발자가 매번 명령을 외우지 않아도, 에이전트에게 웹사이트나 로컬 프론트엔드를 inspect 가능한 데스크톱 앱으로 패키징하라고 맡길 수 있습니다.
 
 ```bash
 appbun skill --install
+appbun skill --install-claude --cwd .
 ```
 
 Codex에서는 이렇게 호출하면 됩니다:
@@ -176,6 +177,8 @@ $appbun-web-desktop package my local web app at http://localhost:3000 as a deskt
 ```
 
 이 스킬은 URL 선택, `appbun` scaffolding, 빌드 검증, `appbun doctor --target ...`, macOS/Windows/Linux native runner 패키징 원칙까지 에이전트가 따라가도록 안내합니다.
+
+Claude Code에서는 `--install-claude`가 프로젝트에 `CLAUDE.md`를 설치합니다. 그러면 Claude가 데스크톱 wrapper를 직접 손으로 만들기보다 `appbun dev`, `appbun doctor --project`, `appbun package` 흐름을 자연스럽게 사용합니다.
 
 ## 내장 레시피
 

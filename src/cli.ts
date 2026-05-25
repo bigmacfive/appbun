@@ -21,7 +21,7 @@ import {
 } from "./lib/generator.js";
 import { createFallbackSiteMetadata, fetchSiteMetadata } from "./lib/metadata.js";
 import { appRecipes, findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "./lib/recipes.js";
-import { getBundledSkillPath, installCodexSkill } from "./lib/skill.js";
+import { getBundledClaudeGuidePath, getBundledSkillPath, installClaudeGuide, installCodexSkill } from "./lib/skill.js";
 import type { CreateCommandOptions, TitlebarStyle } from "./lib/types.js";
 import { clearDirectoryContents, displayPath, isDirectoryEmpty, suggestAlternativeOutputDirectory } from "./lib/utils.js";
 
@@ -49,7 +49,7 @@ program
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
   .showSuggestionAfterError()
   .showHelpAfterError()
-  .version("0.9.0");
+  .version("0.10.0");
 
 program
   .command("create")
@@ -452,8 +452,11 @@ program
   .command("skill")
   .description("Show or install the bundled Codex skill for packaging web apps with appbun.")
   .option("--path", "print only the bundled skill directory")
+  .option("--claude-path", "print only the bundled Claude Code guide path")
   .option("--install", "install the skill into CODEX_HOME or ~/.codex")
+  .option("--install-claude", "install the bundled CLAUDE.md guide into a project directory")
   .option("--codex-home <dir>", "Codex home directory; defaults to CODEX_HOME or ~/.codex")
+  .option("--cwd <dir>", "project directory for --install-claude; defaults to the current directory")
   .option("--force", "replace an existing installed skill")
   .addHelpText(
     "after",
@@ -462,14 +465,20 @@ program
 Examples:
   $ appbun skill
   $ appbun skill --path
+  $ appbun skill --claude-path
   $ appbun skill --install
+  $ appbun skill --install-claude --cwd .
   $ appbun skill --install --force
 `,
   )
-  .action((options: { path?: boolean; install?: boolean; codexHome?: string; force?: boolean }) => {
+  .action((options: { path?: boolean; claudePath?: boolean; install?: boolean; installClaude?: boolean; codexHome?: string; cwd?: string; force?: boolean }) => {
     try {
       if (options.path) {
         console.log(getBundledSkillPath());
+        return;
+      }
+      if (options.claudePath) {
+        console.log(getBundledClaudeGuidePath());
         return;
       }
 
@@ -487,11 +496,24 @@ Examples:
         return;
       }
 
+      if (options.installClaude) {
+        const result = installClaudeGuide({
+          cwd: options.cwd,
+          force: options.force,
+        });
+        console.log(pc.bold(pc.green(result.replaced ? "replaced" : "installed")), "Claude Code appbun guide");
+        console.log(`  source: ${getBundledClaudeGuidePath()}`);
+        console.log(`  destination: ${result.destinationDir}`);
+        return;
+      }
+
       console.log(pc.bold(pc.cyan("appbun Codex skill")));
       console.log(`  bundled path: ${getBundledSkillPath()}`);
+      console.log(`  Claude Code guide: ${getBundledClaudeGuidePath()}`);
       console.log("");
       console.log("Install locally with:");
       console.log("  appbun skill --install");
+      console.log("  appbun skill --install-claude --cwd .");
       console.log("");
       console.log("Then invoke it with:");
       console.log("  $appbun-web-desktop package my web app into a desktop app");

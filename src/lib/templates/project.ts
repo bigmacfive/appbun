@@ -5,7 +5,7 @@ import { generatedReleaseWorkflow } from "./release.js";
 import { generatedBunEntry, generatedMainviewCss, generatedMainviewEntry, generatedMainviewHtml } from "./shell.js";
 import { getTitlebarPreset } from "./titlebar.js";
 
-const APPBUN_GENERATOR_VERSION = "0.9.0";
+const APPBUN_GENERATOR_VERSION = "0.10.0";
 
 export function renderTemplateFiles(config: ResolvedAppConfig, icons: PreparedIconAssets): GeneratedFile[] {
   return [

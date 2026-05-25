@@ -1,4 +1,4 @@
-import { cpSync, existsSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,11 @@ export const codexSkillName = "appbun-web-desktop";
 
 export type InstallCodexSkillOptions = {
   codexHome?: string;
+  force?: boolean;
+};
+
+export type InstallClaudeGuideOptions = {
+  cwd?: string;
   force?: boolean;
 };
 
@@ -19,6 +24,10 @@ export type InstallCodexSkillResult = {
 export function getBundledSkillPath(): string {
   const moduleDir = dirname(fileURLToPath(import.meta.url));
   return resolve(moduleDir, "..", "..", "skills", codexSkillName);
+}
+
+export function getBundledClaudeGuidePath(): string {
+  return join(getBundledSkillPath(), "CLAUDE.md");
 }
 
 export function getDefaultCodexHome(): string {
@@ -48,6 +57,30 @@ export function installCodexSkill(options: InstallCodexSkillOptions = {}): Insta
   return {
     sourceDir,
     destinationDir,
+    replaced,
+  };
+}
+
+export function installClaudeGuide(options: InstallClaudeGuideOptions = {}): InstallCodexSkillResult {
+  const sourceDir = getBundledSkillPath();
+  const sourceFile = getBundledClaudeGuidePath();
+  if (!existsSync(sourceFile)) {
+    throw new Error(`Bundled Claude guide not found: ${sourceFile}`);
+  }
+
+  const destinationDir = resolve(options.cwd ?? process.cwd());
+  const destinationFile = join(destinationDir, "CLAUDE.md");
+  const replaced = existsSync(destinationFile);
+  if (replaced && !options.force) {
+    throw new Error(`CLAUDE.md already exists: ${destinationFile}. Re-run with --force to replace it.`);
+  }
+
+  mkdirSync(destinationDir, { recursive: true });
+  writeFileSync(destinationFile, readFileSync(sourceFile, "utf8"));
+
+  return {
+    sourceDir,
+    destinationDir: destinationFile,
     replaced,
   };
 }

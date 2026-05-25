@@ -21,7 +21,8 @@ Rules:
 - Prefer a dedicated output directory outside this source repo, such as ../appbun-output/[APP_SLUG].
 - If the wrapper must live inside this repo, commit or back up the source app before installing or building it.
 - If the URL points to a local dev server, make sure the dev server is running and reachable before packaging.
-- If local favicon or manifest icons fail during scaffolding, rerun with `--no-icon` and add icons manually later.
+- If the local URL is unclear but the dev server is already running, prefer `npx -y appbun@latest dev --name "[APP_NAME]" --out-dir ../appbun-output/[APP_SLUG] --yes`.
+- appbun creates fallback icons when site icons are missing or broken; only use `--no-icon` when the user explicitly wants to skip icon generation.
 - Keep the generated project inspectable and editable.
 - Preserve site branding and icon metadata when available.
 - If the output directory already exists, prefer a safe non-destructive path or explicit confirmation.
@@ -34,13 +35,14 @@ Execution plan:
    # If icon parsing fails, rerun the same command with --no-icon.
 3. 생성된 wrapper 디렉터리로 이동한다.
    cd ../appbun-output/[APP_SLUG]
-4. 의존성을 설치한다.
-   bun install
-5. 데스크톱 wrapper를 빌드한다.
-   bun run build
+4. 생성된 프로젝트를 진단한다.
+   npx -y appbun@latest doctor --project
+5. 의존성을 설치하고 데스크톱 wrapper를 빌드한다.
+   npx -y appbun@latest package --install
 6. macOS라면 일반 빌드가 성공하고 source repo가 백업된 뒤 DMG도 만든다.
-   bun run build:dmg
-7. 필요하면 wrapper를 다시 빌드하는 방법을 README에 짧게 적는다.
+   npx -y appbun@latest package --dmg
+7. signed/notarized 배포가 필요하면 Apple signing/notary env가 있을 때만 `package --dmg --sign` 또는 `package --notarize`를 사용한다.
+8. 필요하면 wrapper를 다시 빌드하는 방법을 README에 짧게 적는다.
 
 When you reply, include:
 - what command you ran

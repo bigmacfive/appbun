@@ -10,7 +10,7 @@ import { renderTemplateFiles, resolveAppConfig, writeProject } from "../lib/gene
 import { createFallbackSiteMetadata } from "../lib/metadata.js";
 import { runProjectDoctor } from "../lib/project-doctor.js";
 import { findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "../lib/recipes.js";
-import { codexSkillName, getBundledSkillPath } from "../lib/skill.js";
+import { codexSkillName, getBundledClaudeGuidePath, getBundledSkillPath, installClaudeGuide } from "../lib/skill.js";
 import { deriveIdentifier, isDirectoryEmpty, normalizeHexColor, slugify, suggestAlternativeOutputDirectory } from "../lib/utils.js";
 
 const tempDirs: string[] = [];
@@ -168,6 +168,8 @@ describe("generator", () => {
     expect(prompt).toContain("http://localhost:3000/");
     expect(prompt).toContain("./desktop/my-app");
     expect(prompt).toContain("npx -y appbun@latest");
+    expect(prompt).toContain("doctor --project");
+    expect(prompt).toContain("package --install");
   });
 
   test("bundled Codex skill is included for agent workflows", () => {
@@ -175,6 +177,16 @@ describe("generator", () => {
     expect(packageJson.files).toContain("skills");
     expect(codexSkillName).toBe("appbun-web-desktop");
     expect(existsSync(join(getBundledSkillPath(), "SKILL.md"))).toBe(true);
+    expect(existsSync(getBundledClaudeGuidePath())).toBe(true);
+  });
+
+  test("Claude Code guide can be installed into a project", () => {
+    const root = mkdtempSync(join(tmpdir(), "appbun-claude-"));
+    tempDirs.push(root);
+
+    const result = installClaudeGuide({ cwd: root });
+    expect(result.destinationDir).toBe(join(root, "CLAUDE.md"));
+    expect(readFileSync(join(root, "CLAUDE.md"), "utf8")).toContain("package --dmg");
   });
 
   test("createFallbackSiteMetadata derives defaults from url", () => {

@@ -165,10 +165,11 @@ That outputs a ready-to-paste instruction block telling the agent to package the
 
 ## Codex skill
 
-`appbun` also ships a Codex skill so web developers can ask an agent to package a website or local frontend as an inspectable desktop app without remembering every command.
+`appbun` also ships agent instructions so web developers can ask Codex or Claude Code to package a website or local frontend as an inspectable desktop app without remembering every command.
 
 ```bash
 appbun skill --install
+appbun skill --install-claude --cwd .
 ```
 
 Then invoke it in Codex:
@@ -177,7 +178,9 @@ Then invoke it in Codex:
 $appbun-web-desktop package my local web app at http://localhost:3000 as a desktop app
 ```
 
-The skill guides the agent through URL selection, `appbun` scaffolding, build verification, `appbun doctor --target ...`, and native-runner packaging expectations for macOS, Windows, and Linux.
+For Claude Code, `--install-claude` writes a focused `CLAUDE.md` into the selected project so Claude naturally reaches for `appbun dev`, `appbun doctor --project`, and `appbun package` instead of improvising a desktop wrapper.
+
+The bundled agent guidance covers URL selection, `appbun` scaffolding, generated-project diagnostics, local packaging, DMG signing/notarization expectations, and native-runner packaging expectations for macOS, Windows, and Linux.
 
 ## Built-in recipes
 
