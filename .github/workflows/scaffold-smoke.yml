@@ -18,5 +18,9 @@ jobs:
       - run: bun run build
       - run: node ./bin/appbun.js https://example.com --name Example --out-dir ./tmp/example --quiet
       - run: test -f ./tmp/example/electrobun.config.ts
+      - run: test -f ./tmp/example/appbun.generated.json
       - run: test -f ./tmp/example/package.json
       - run: test -f ./tmp/example/src/mainview/index.ts
+      - run: test -f ./tmp/example/scripts/create-dmg.mjs
+      - run: grep -q APPLE_SIGN_IDENTITY ./tmp/example/scripts/create-dmg.mjs
+      - run: grep -q appbun.generated.json ./tmp/example/README.md

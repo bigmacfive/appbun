@@ -46,6 +46,11 @@ export interface PreparedIconAssets {
   sourceUrl?: string;
 }
 
+export interface SigningOptions {
+  identityEnv: "APPLE_SIGN_IDENTITY";
+  requireEnv: "APPBUN_DMG_SIGN";
+}
+
 export interface ResolvedAppConfig {
   name: string;
   title: string;

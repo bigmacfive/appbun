@@ -274,6 +274,7 @@ my-app/
 │       ├── index.css       # 통합 title area 스타일
 │       └── index.ts        # remote webview 부트스트랩
 ├── electrobun.config.ts
+├── appbun.generated.json
 ├── package.json
 └── tsconfig.json
 ```
@@ -288,7 +289,15 @@ my-app/
 - `--titlebar unified`, `compact`, `minimal`일 때 `hiddenInset` traffic lights
 - 연결형 프리셋에서 `UnifiedTitleAndToolbar` + `FullSizeContentView`
 - 고정된 가짜 헤더 하나가 아니라 선택한 프리셋에 맞는 로컬 title area
-- 설치형 배포를 위한 `build:dmg`
+- 비서명 설치형 배포를 위한 `build:dmg`
+
+생성된 `build:dmg` 스크립트가 DMG 생성 전에 `.app`을 서명하게 하려면 로컬 Developer ID Application identity를 `APPLE_SIGN_IDENTITY`로 지정합니다:
+
+```bash
+APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" bun run build:dmg
+```
+
+서명 identity가 없을 때 비서명 패키징으로 넘어가지 않고 실패해야 한다면 `APPBUN_DMG_SIGN=1`을 함께 설정합니다.
 
 ### Windows 와 Linux
 

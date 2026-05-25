@@ -276,6 +276,7 @@ my-app/
 │       ├── index.css       # Unified title area styles
 │       └── index.ts        # Embedded remote webview bootstrap
 ├── electrobun.config.ts
+├── appbun.generated.json
 ├── package.json
 └── tsconfig.json
 ```
@@ -290,7 +291,15 @@ Generated apps can use:
 - `hiddenInset` traffic lights with `--titlebar unified`, `compact`, or `minimal`
 - `UnifiedTitleAndToolbar` plus `FullSizeContentView` for the connected presets
 - a local title area sized to match the selected preset instead of one fixed fake header
-- `build:dmg` for installer-style distribution
+- `build:dmg` for unsigned installer-style distribution
+
+Set `APPLE_SIGN_IDENTITY` to a local Developer ID Application identity when you want the generated `build:dmg` script to sign the `.app` before creating the DMG:
+
+```bash
+APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" bun run build:dmg
+```
+
+Set `APPBUN_DMG_SIGN=1` when the DMG flow should fail instead of falling back to unsigned packaging if no signing identity is configured.
 
 ### Windows and Linux
 

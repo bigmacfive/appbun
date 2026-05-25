@@ -29,6 +29,7 @@ export function runDoctor(target?: DoctorTarget): DoctorReport {
     checkNpm(),
     checkGit(),
     checkMacDmgTools(),
+    checkMacSigningReadiness(target),
     checkPackagingTarget(target),
   ].filter((check): check is DoctorCheck => Boolean(check));
 
@@ -182,6 +183,62 @@ function checkMacDmgTools(): DoctorCheck | undefined {
   };
 }
 
+function checkMacSigningReadiness(target?: DoctorTarget): DoctorCheck | undefined {
+  if (target !== "macos") {
+    return undefined;
+  }
+
+  if (process.platform !== "darwin") {
+    return {
+      name: "macOS code signing",
+      status: "warn",
+      message: "not checked on this runner",
+      detail: "Run appbun doctor --target macos on a macOS machine or macOS CI runner to inspect codesign identities.",
+    };
+  }
+
+  const codesign = commandVersion("codesign", ["--version"]);
+  if (!codesign) {
+    return {
+      name: "macOS code signing",
+      status: "warn",
+      message: "codesign not found",
+      detail: "Install Xcode Command Line Tools if you want generated DMGs to sign the .app before packaging.",
+    };
+  }
+
+  const identities = commandOutput("security", ["find-identity", "-v", "-p", "codesigning"]);
+  if (!identities) {
+    return {
+      name: "macOS code signing",
+      status: "warn",
+      message: "no signing identities found",
+      detail: "Set APPLE_SIGN_IDENTITY to a Developer ID Application identity when you want build:dmg to sign the app.",
+    };
+  }
+
+  const identityCount = identities
+    .split("\n")
+    .filter((line) => /^\s*\d+\)/.test(line) && !line.includes("0 valid identities found"))
+    .length;
+
+  if (identityCount === 0) {
+    return {
+      name: "macOS code signing",
+      status: "warn",
+      message: "no valid signing identities found",
+      detail: "Unsigned DMGs still work locally. For signed DMGs, install a Developer ID Application certificate and set APPLE_SIGN_IDENTITY.",
+    };
+  }
+
+  return {
+    name: "macOS code signing",
+    status: "ok",
+    message: `${identityCount} signing ${identityCount === 1 ? "identity" : "identities"} available`,
+    detail: "Set APPLE_SIGN_IDENTITY to the exact identity name to sign generated DMGs.",
+  };
+}
+
 function checkPackagingTarget(target?: DoctorTarget): DoctorCheck | undefined {
   if (!target) {
     return undefined;
@@ -224,6 +281,10 @@ function currentDoctorTarget(): DoctorTarget {
 }
 
 function commandVersion(command: string, args: string[]): string | undefined {
+  return commandOutput(command, args)?.split("\n")[0]?.trim();
+}
+
+function commandOutput(command: string, args: string[]): string | undefined {
   const result = spawnSync(command, args, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -233,7 +294,7 @@ function commandVersion(command: string, args: string[]): string | undefined {
     return undefined;
   }
 
-  return (result.stdout || result.stderr).trim().split("\n")[0]?.trim();
+  return (result.stdout || result.stderr).trim();
 }
 
 function statusLabel(status: DoctorStatus): string {

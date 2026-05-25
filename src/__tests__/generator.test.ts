@@ -93,6 +93,12 @@ describe("generator", () => {
     expect(report.checks.some((check) => check.name === "Packaging target")).toBe(true);
   });
 
+  test("doctor includes macOS signing readiness for macOS target", () => {
+    const report = runDoctor("macos");
+    expect(report.target).toBe("macos");
+    expect(report.checks.some((check) => check.name === "macOS code signing")).toBe(true);
+  });
+
   test("doctor rejects unknown packaging targets", () => {
     expect(() => parseDoctorTarget("android")).toThrow("Invalid doctor target");
   });
@@ -226,15 +232,24 @@ describe("generator", () => {
 
     const files = renderTemplateFiles(config, {});
     expect(files.some((file) => file.path === ".github/workflows/release.yml")).toBe(true);
+    expect(files.some((file) => file.path === "appbun.generated.json")).toBe(true);
     expect(files.some((file) => file.path === "src/bun/index.ts")).toBe(true);
     expect(files.some((file) => file.path === "src/mainview/index.ts")).toBe(true);
     expect(files.some((file) => file.path === "scripts/build-platform.mjs")).toBe(true);
     expect(files.some((file) => file.path === "scripts/create-dmg.mjs")).toBe(true);
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("site-origin");
+    expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("reload-app");
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("--shell-toolbar-height: 40px");
+    expect(files.find((file) => file.path === "src/mainview/index.ts")?.content).toContain("const APP_CONFIG =");
+    expect(files.find((file) => file.path === "src/mainview/index.ts")?.content).toContain("appbun webview failed to load");
     expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:windows": "node scripts/build-platform.mjs windows"');
-    expect(files.find((file) => file.path === "README.md")?.content).toContain("Cross-platform packaging");
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("Build A DMG");
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("APPLE_SIGN_IDENTITY");
     expect(files.find((file) => file.path === ".github/workflows/release.yml")?.content).toContain("windows-latest");
+    expect(files.find((file) => file.path === ".github/workflows/release.yml")?.content).toContain("secrets.APPLE_SIGN_IDENTITY");
+    expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("APPLE_SIGN_IDENTITY");
+    expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("codesign");
+    expect(files.find((file) => file.path === "appbun.generated.json")?.content).toContain('"generator"');
   });
 
   test("system titlebar preset falls back to native chrome", () => {
@@ -318,6 +333,7 @@ describe("generator", () => {
 
     const files = renderTemplateFiles(config, {});
     expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:dmg": "npm run build:stable && node scripts/create-dmg.mjs"');
+    expect(files.find((file) => file.path === "README.md")?.content).toContain('APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" npm run build:dmg');
   });
 
   test("generated readme includes first-launch macOS note", () => {
@@ -393,6 +409,7 @@ describe("generator", () => {
     });
 
     expect(existsSync(join(config.outDir, "electrobun.config.ts"))).toBe(true);
+    expect(existsSync(join(config.outDir, "appbun.generated.json"))).toBe(true);
     expect(existsSync(join(config.outDir, ".github", "workflows", "release.yml"))).toBe(true);
     expect(existsSync(join(config.outDir, "assets", "icon.ico"))).toBe(true);
     expect(existsSync(join(config.outDir, "icon.iconset", "icon_512x512.png"))).toBe(true);
@@ -403,7 +420,8 @@ describe("generator", () => {
     expect(readFileSync(join(config.outDir, "src", "mainview", "index.ts"), "utf8")).toContain("example.com");
     expect(readFileSync(join(config.outDir, "package.json"), "utf8")).toContain("\"build:dmg\"");
     expect(readFileSync(join(config.outDir, "package.json"), "utf8")).toContain("\"build:linux\"");
-    expect(readFileSync(join(config.outDir, "README.md"), "utf8")).toContain("Electrobun builds should run on a native runner");
+    expect(readFileSync(join(config.outDir, "README.md"), "utf8")).toContain("Sign A DMG");
+    expect(readFileSync(join(config.outDir, "appbun.generated.json"), "utf8")).toContain("\"sourceUrl\"");
     expect(readFileSync(join(config.outDir, ".github", "workflows", "release.yml"), "utf8")).toContain("actions/upload-artifact@v4");
     expect(icons.sourceUrl).toBe(svgIconDataUrl);
   }, 20000);
