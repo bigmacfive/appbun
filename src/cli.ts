@@ -8,6 +8,9 @@ import { Command, InvalidArgumentError } from "commander";
 
 import { buildAgentPrompt } from "./lib/agent-prompt.js";
 import { formatDoctorReport, parseDoctorTarget, runDoctor } from "./lib/doctor.js";
+import { discoverLocalWebApp } from "./lib/local-dev.js";
+import { packageGeneratedProject } from "./lib/project-package.js";
+import { runProjectDoctor } from "./lib/project-doctor.js";
 import {
   findLatestDmg,
   installDependencies,
@@ -46,7 +49,7 @@ program
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
   .showSuggestionAfterError()
   .showHelpAfterError()
-  .version("0.8.0");
+  .version("0.9.0");
 
 program
   .command("create")
@@ -370,10 +373,13 @@ program
   .command("doctor")
   .description("Check the local appbun development and packaging environment.")
   .option("--target <target>", "check packaging readiness for macos, windows, or linux", parseDoctorTargetOption)
+  .option("--project [dir]", "check a generated appbun project; defaults to the current directory")
   .option("--json", "print the report as JSON")
   .option("--strict", "exit non-zero for warnings as well as failures")
-  .action((options: { target?: ReturnType<typeof parseDoctorTarget>; json?: boolean; strict?: boolean }) => {
-    const report = runDoctor(options.target);
+  .action((options: { target?: ReturnType<typeof parseDoctorTarget>; project?: string | boolean; json?: boolean; strict?: boolean }) => {
+    const report = options.project
+      ? runProjectDoctor({ cwd: typeof options.project === "string" ? options.project : process.cwd() })
+      : runDoctor(options.target);
     if (options.json) {
       console.log(JSON.stringify(report, null, 2));
     } else {
@@ -381,6 +387,63 @@ program
     }
 
     if (report.status === "fail" || (options.strict && report.status !== "ok")) {
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("package")
+  .description("Build or package a generated appbun project from inside its project directory.")
+  .option("--cwd <dir>", "generated project directory; defaults to the current directory")
+  .option("--install", "install dependencies before packaging")
+  .option("--dmg", "build a macOS DMG")
+  .option("--sign", "require APPLE_SIGN_IDENTITY and sign the app before creating a DMG")
+  .option("--notarize", "sign and notarize the app before creating a DMG")
+  .action((options: { cwd?: string; install?: boolean; dmg?: boolean; sign?: boolean; notarize?: boolean }) => {
+    try {
+      packageGeneratedProject(options);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(pc.bold(pc.red("error")), message);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("dev")
+  .description("Detect a running local web app and scaffold it as a desktop app.")
+  .option("-n, --name <name>", "app display name")
+  .option("-o, --out-dir <dir>", "output directory")
+  .option("-y, --yes", "accept interactive prompts automatically")
+  .option("--quiet", "reduce output")
+  .action(async (options: Pick<CreateCommandOptions, "name" | "outDir" | "yes" | "quiet">) => {
+    try {
+      const url = await discoverLocalWebApp();
+      if (!url) {
+        throw new Error("No local web app found on common ports: 3000, 5173, 4173, 8080, 8000, 5000, 5174, 4321.");
+      }
+
+      if (!options.quiet) {
+        console.log(pc.bold(pc.cyan("appbun")), `detected ${url}`);
+      }
+
+      const createOptions = {
+        ...defaultOptions,
+        ...options,
+        outDir: options.outDir ?? "./desktop/local-app",
+      };
+      const metadata = await fetchSiteMetadata(url).catch(() => createFallbackSiteMetadata(url));
+      let config = resolveAppConfig(url, createOptions, metadata);
+      config = await resolveInteractiveOutputDirectory(config, createOptions);
+      const icons = await writeProject(config, metadata);
+
+      if (!options.quiet) {
+        console.log(pc.bold(pc.green("created")), config.outDir);
+        console.log(`  icon source: ${icons.sourceUrl ?? "(fallback)"}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(pc.bold(pc.red("error")), message);
       process.exitCode = 1;
     }
   });
@@ -448,6 +511,8 @@ Commands:
   recipes  List built-in popular app recipes.
   discover Find recipes by concept, name, alias, or description.
   doctor   Check local development and packaging readiness.
+  package  Build or package a generated appbun project.
+  dev      Detect a local web app and scaffold it.
   skill    Show or install the bundled Codex skill.
 
 Run "appbun <command> --help" to see examples and titlebar presets.

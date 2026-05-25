@@ -19,9 +19,14 @@ const buildDir = resolve(root, "build");
 const appPath = await findLatestAppBundle(buildDir);
 const signIdentity = process.env.${SIGNING_OPTIONS.identityEnv}?.trim();
 const requireSigning = process.env.${SIGNING_OPTIONS.requireEnv} === "1";
+const shouldNotarize = process.env.APPLE_NOTARIZE === "1";
 
 if (!appPath) {
   fail("missing-app", "No macOS .app bundle found under build/. Run your stable build before creating a DMG.");
+}
+
+if (shouldNotarize && !signIdentity) {
+  fail("notarize-requires-signing", "APPLE_NOTARIZE=1 requires ${SIGNING_OPTIONS.identityEnv} so the .app is signed before packaging.");
 }
 
 if (signIdentity) {
@@ -58,6 +63,15 @@ if (result.error?.code === "ENOENT") {
 
 if (result.status !== 0) {
   fail("dmg-failed", \`create-dmg failed with exit code \${result.status ?? "unknown"}. Check the hdiutil output above.\`);
+}
+
+const dmgPath = await findLatestDmg(destinationDir);
+if (!dmgPath) {
+  fail("missing-dmg", \`create-dmg completed, but no DMG was found in \${destinationDir}.\`);
+}
+
+if (shouldNotarize) {
+  notarizeDmg(dmgPath);
 }
 
 console.log(\`DMG created from \${basename(appPath)} in \${destinationDir}\`);
@@ -111,6 +125,50 @@ function signAppBundle(appPath, identity) {
   console.log(\`Signed \${basename(appPath)} with \${identity}\`);
 }
 
+function notarizeDmg(dmgPath) {
+  const appleId = process.env.APPLE_ID?.trim();
+  const teamId = process.env.APPLE_TEAM_ID?.trim();
+  const password = process.env.APPLE_APP_SPECIFIC_PASSWORD?.trim();
+  if (!appleId || !teamId || !password) {
+    fail("missing-notary-env", "APPLE_NOTARIZE=1 requires APPLE_ID, APPLE_TEAM_ID, and APPLE_APP_SPECIFIC_PASSWORD.");
+  }
+
+  const result = spawnSync("xcrun", [
+    "notarytool",
+    "submit",
+    dmgPath,
+    "--apple-id",
+    appleId,
+    "--team-id",
+    teamId,
+    "--password",
+    password,
+    "--wait",
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  if (result.error?.code === "ENOENT") {
+    fail("missing-xcrun", "xcrun notarytool was not found. Install Xcode or Xcode Command Line Tools.");
+  }
+  if (result.status !== 0) {
+    const output = \`\${result.stdout || ""}\\n\${result.stderr || ""}\`.trim();
+    fail("notarization-failed", \`Apple notarization failed.\\n\${output}\`);
+  }
+
+  const staple = spawnSync("xcrun", ["stapler", "staple", dmgPath], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (staple.status !== 0) {
+    const output = \`\${staple.stdout || ""}\\n\${staple.stderr || ""}\`.trim();
+    fail("staple-failed", \`Notarization succeeded, but stapling failed.\\n\${output}\`);
+  }
+
+  console.log(\`Notarized and stapled \${basename(dmgPath)}\`);
+}
+
 async function findLatestAppBundle(dir) {
   let best = undefined;
   await walk(dir);
@@ -138,6 +196,19 @@ async function findLatestAppBundle(dir) {
         await walk(fullPath);
       }
     }
+  }
+}
+
+async function findLatestDmg(dir) {
+  try {
+    const entries = await readdir(dir);
+    return entries
+      .filter((entry) => entry.endsWith(".dmg"))
+      .sort()
+      .map((entry) => join(dir, entry))
+      .at(-1);
+  } catch {
+    return undefined;
   }
 }
 

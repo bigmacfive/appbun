@@ -71,6 +71,10 @@ export function generatedMainviewHtml(config: ResolvedAppConfig): string {
   <div class="shell" data-titlebar-style="${preset.id}">
 ${toolbar}
     <main class="stage">
+      <div id="shell-status" class="shell-status" role="status">
+        <strong>Loading ${escapeHtml(config.name)}</strong>
+        <span>${escapeHtml(new URL(config.url).hostname)}</span>
+      </div>
       <div id="webview-mount" class="webview-mount"></div>
     </main>
   </div>
@@ -254,6 +258,45 @@ body {
   height: 100%;
 }
 
+.shell-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--shell-ink);
+  background: #ffffff;
+  z-index: 1;
+}
+
+.shell-status strong {
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.shell-status span {
+  max-width: 70vw;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--shell-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell-status.is-hidden {
+  display: none;
+}
+
+.shell-status.is-error {
+  color: #991b1b;
+  background: #fff7f7;
+}
+
 electrobun-webview {
   display: block;
   width: 100%;
@@ -295,8 +338,10 @@ const siteOrigin = document.getElementById("site-origin");
 const siteIcon = document.getElementById("site-icon") as HTMLImageElement | null;
 const reloadButton = document.getElementById("reload-app");
 const openExternalButton = document.getElementById("open-external");
+const shellStatus = document.getElementById("shell-status");
 const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 let remoteApp: HTMLElement | undefined;
+let loadTimeout: number | undefined;
 
 document.title = APP_CONFIG.title;
 document.documentElement.style.setProperty("--appbun-accent", APP_CONFIG.themeColor);
@@ -313,16 +358,25 @@ if (mount) {
   remoteApp.setAttribute("src", APP_CONFIG.url);
   remoteApp.setAttribute("id", "remote-app");
   remoteApp.classList.add("remote-app");
+  showStatus("loading", \`Loading \${APP_CONFIG.name}\`, APP_CONFIG.origin.replace(/^https?:\\/\\//, ""));
+  loadTimeout = window.setTimeout(() => {
+    showStatus("loading", \`\${APP_CONFIG.name} is still loading\`, "Check your network or reload the app.");
+  }, 12000);
+  remoteApp.addEventListener("dom-ready", () => hideStatus());
+  remoteApp.addEventListener("load", () => hideStatus());
   remoteApp.addEventListener("error", (event) => {
     console.error("appbun webview failed to load", event);
+    showStatus("error", \`\${APP_CONFIG.name} could not load\`, APP_CONFIG.url);
   });
   mount.appendChild(remoteApp);
 } else {
   console.error("appbun shell could not find #webview-mount");
+  showStatus("error", "App shell could not start", "Missing #webview-mount");
 }
 
 reloadButton?.addEventListener("click", () => {
   const currentSrc = remoteApp?.getAttribute("src") ?? APP_CONFIG.url;
+  showStatus("loading", \`Reloading \${APP_CONFIG.name}\`, APP_CONFIG.origin.replace(/^https?:\\/\\//, ""));
   remoteApp?.setAttribute("src", "about:blank");
   window.setTimeout(() => remoteApp?.setAttribute("src", currentSrc), 0);
 });
@@ -342,5 +396,26 @@ siteIcon?.addEventListener("error", () => {
 });
 
 console.log(${JSON.stringify(logMessage)});
+
+function showStatus(kind: "loading" | "error", title: string, detail: string) {
+  if (!shellStatus) {
+    return;
+  }
+
+  const titleElement = shellStatus.querySelector("strong");
+  const detailElement = shellStatus.querySelector("span");
+  titleElement && (titleElement.textContent = title);
+  detailElement && (detailElement.textContent = detail);
+  shellStatus.classList.toggle("is-error", kind === "error");
+  shellStatus.classList.remove("is-hidden");
+}
+
+function hideStatus() {
+  if (loadTimeout) {
+    window.clearTimeout(loadTimeout);
+    loadTimeout = undefined;
+  }
+  shellStatus?.classList.add("is-hidden");
+}
 `;
 }

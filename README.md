@@ -82,6 +82,12 @@ appbun recipes
 appbun discover design
 ```
 
+If your local web app is already running, let appbun find common dev ports:
+
+```bash
+appbun dev --name "My App"
+```
+
 ## CLI examples
 
 List popular recipes:
@@ -133,6 +139,16 @@ Skip confirmation prompts in scripted runs:
 
 ```bash
 appbun https://github.com --name "GitHub" --out-dir ./github --yes
+```
+
+Build or diagnose a generated project from inside its folder:
+
+```bash
+appbun doctor --project
+appbun package
+appbun package --dmg
+appbun package --dmg --sign
+appbun package --notarize
 ```
 
 If you are building a web app and want a coding agent to turn it into a desktop app for you, copy the prompt from:
@@ -300,6 +316,8 @@ APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" bun run build
 ```
 
 Set `APPBUN_DMG_SIGN=1` when the DMG flow should fail instead of falling back to unsigned packaging if no signing identity is configured.
+
+For notarized public distribution, generated projects also include `build:dmg:notarized`. It requires `APPLE_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_TEAM_ID`, and `APPLE_APP_SPECIFIC_PASSWORD` on macOS with Xcode tools installed.
 
 ### Windows and Linux
 

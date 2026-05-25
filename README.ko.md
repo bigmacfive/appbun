@@ -80,6 +80,12 @@ appbun recipes
 appbun discover design
 ```
 
+이미 로컬 웹 앱이 실행 중이라면 appbun이 흔한 dev port를 찾아서 감쌀 수도 있습니다:
+
+```bash
+appbun dev --name "My App"
+```
+
 ## CLI 예시
 
 인기 레시피 목록 보기:
@@ -131,6 +137,16 @@ appbun https://github.com --name "GitHub" --titlebar system
 
 ```bash
 appbun https://github.com --name "GitHub" --out-dir ./github --yes
+```
+
+생성된 프로젝트 폴더 안에서는 바로 진단하거나 패키징할 수 있습니다:
+
+```bash
+appbun doctor --project
+appbun package
+appbun package --dmg
+appbun package --dmg --sign
+appbun package --notarize
 ```
 
 개발 중인 웹서비스를 에이전트가 바로 데스크톱 앱으로 빼게 하고 싶다면, 아래 정적 프롬프트를 복붙하면 됩니다:
@@ -298,6 +314,8 @@ APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" bun run build
 ```
 
 서명 identity가 없을 때 비서명 패키징으로 넘어가지 않고 실패해야 한다면 `APPBUN_DMG_SIGN=1`을 함께 설정합니다.
+
+외부 배포용 notarized DMG가 필요하면 생성 프로젝트의 `build:dmg:notarized`를 사용할 수 있습니다. macOS와 Xcode tools가 필요하고 `APPLE_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`를 설정해야 합니다.
 
 ### Windows 와 Linux
 

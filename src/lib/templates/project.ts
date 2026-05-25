@@ -5,7 +5,7 @@ import { generatedReleaseWorkflow } from "./release.js";
 import { generatedBunEntry, generatedMainviewCss, generatedMainviewEntry, generatedMainviewHtml } from "./shell.js";
 import { getTitlebarPreset } from "./titlebar.js";
 
-const APPBUN_GENERATOR_VERSION = "0.8.0";
+const APPBUN_GENERATOR_VERSION = "0.9.0";
 
 export function renderTemplateFiles(config: ResolvedAppConfig, icons: PreparedIconAssets): GeneratedFile[] {
   return [
@@ -87,6 +87,7 @@ function generatedPackageJson(config: ResolvedAppConfig): string {
       build: "electrobun build",
       "build:current": "electrobun build",
       "build:dmg": `${packageManagerRun} build:stable && node scripts/create-dmg.mjs`,
+      "build:dmg:notarized": `${packageManagerRun} build:stable && APPLE_NOTARIZE=1 APPBUN_DMG_SIGN=1 node scripts/create-dmg.mjs`,
       "build:canary": "electrobun build --env=canary",
       "build:stable": "electrobun build --env=stable",
       "build:macos": "node scripts/build-platform.mjs macos",
@@ -267,6 +268,20 @@ APPBUN_DMG_SIGN=1 APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAM
 
 This signs the \`.app\` before creating the DMG. Notarization is not configured by default.
 
+## Notarize A DMG
+
+For public macOS distribution, provide Apple notarization credentials and run:
+
+\`\`\`bash
+APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \\
+APPLE_ID="you@example.com" \\
+APPLE_TEAM_ID="TEAMID" \\
+APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx" \\
+${config.packageManager} run build:dmg:notarized
+\`\`\`
+
+This signs the \`.app\`, creates the DMG, submits it with \`xcrun notarytool\`, and staples the notarization ticket to the DMG.
+
 ## CI Builds
 
 Electrobun builds should run on a native runner for the target platform. Use the same project on each OS instead of treating local builds as cross-compilation.
@@ -304,6 +319,7 @@ This project includes \`.github/workflows/release.yml\`. Add \`APPLE_SIGN_IDENTI
 - No \`.app\` under \`build/\`: run \`${buildCommand}\` or \`${config.packageManager} run build:stable\` before \`${dmgCommand}\`.
 - \`APPLE_SIGN_IDENTITY\` not found: run \`security find-identity -v -p codesigning\` and use one of the listed identity names.
 - Keychain permission denied: unlock the keychain or allow \`codesign\` to use the certificate.
+- Notarization failed: confirm \`APPLE_ID\`, \`APPLE_TEAM_ID\`, and \`APPLE_APP_SPECIFIC_PASSWORD\`, then rerun on a macOS machine with Xcode tools.
 - \`create-dmg\` or \`hdiutil\` failed: rerun \`${installCommand}\`, confirm you are on macOS, and inspect the command output above the error.
 
 ## Notes

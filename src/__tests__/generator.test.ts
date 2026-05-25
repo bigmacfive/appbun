@@ -8,6 +8,7 @@ import { buildAgentPrompt } from "../lib/agent-prompt.js";
 import { formatDoctorReport, parseDoctorTarget, runDoctor, summarizeDoctorStatus } from "../lib/doctor.js";
 import { renderTemplateFiles, resolveAppConfig, writeProject } from "../lib/generator.js";
 import { createFallbackSiteMetadata } from "../lib/metadata.js";
+import { runProjectDoctor } from "../lib/project-doctor.js";
 import { findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "../lib/recipes.js";
 import { codexSkillName, getBundledSkillPath } from "../lib/skill.js";
 import { deriveIdentifier, isDirectoryEmpty, normalizeHexColor, slugify, suggestAlternativeOutputDirectory } from "../lib/utils.js";
@@ -239,15 +240,19 @@ describe("generator", () => {
     expect(files.some((file) => file.path === "scripts/create-dmg.mjs")).toBe(true);
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("site-origin");
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("reload-app");
+    expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("shell-status");
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("--shell-toolbar-height: 40px");
     expect(files.find((file) => file.path === "src/mainview/index.ts")?.content).toContain("const APP_CONFIG =");
     expect(files.find((file) => file.path === "src/mainview/index.ts")?.content).toContain("appbun webview failed to load");
     expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:windows": "node scripts/build-platform.mjs windows"');
+    expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:dmg:notarized"');
     expect(files.find((file) => file.path === "README.md")?.content).toContain("Build A DMG");
     expect(files.find((file) => file.path === "README.md")?.content).toContain("APPLE_SIGN_IDENTITY");
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("Notarize A DMG");
     expect(files.find((file) => file.path === ".github/workflows/release.yml")?.content).toContain("windows-latest");
     expect(files.find((file) => file.path === ".github/workflows/release.yml")?.content).toContain("secrets.APPLE_SIGN_IDENTITY");
     expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("APPLE_SIGN_IDENTITY");
+    expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("APPLE_NOTARIZE");
     expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("codesign");
     expect(files.find((file) => file.path === "appbun.generated.json")?.content).toContain('"generator"');
   });
@@ -424,6 +429,10 @@ describe("generator", () => {
     expect(readFileSync(join(config.outDir, "appbun.generated.json"), "utf8")).toContain("\"sourceUrl\"");
     expect(readFileSync(join(config.outDir, ".github", "workflows", "release.yml"), "utf8")).toContain("actions/upload-artifact@v4");
     expect(icons.sourceUrl).toBe(svgIconDataUrl);
+
+    const report = runProjectDoctor({ cwd: config.outDir });
+    expect(report.status).toBe("warn");
+    expect(report.checks.some((check) => check.name === "Generated manifest" && check.status === "ok")).toBe(true);
   }, 20000);
 
   test("writeProject keeps scaffolding when icon parsing fails", async () => {
@@ -465,9 +474,9 @@ describe("generator", () => {
       ],
     });
 
-    expect(icons.sourceUrl).toBeUndefined();
+    expect(icons.sourceUrl).toBe("appbun:fallback-icon");
     expect(existsSync(join(config.outDir, "package.json"))).toBe(true);
     expect(existsSync(join(config.outDir, "src", "mainview", "index.ts"))).toBe(true);
-    expect(existsSync(join(config.outDir, "assets", "icon.ico"))).toBe(false);
+    expect(existsSync(join(config.outDir, "assets", "icon.ico"))).toBe(true);
   });
 });

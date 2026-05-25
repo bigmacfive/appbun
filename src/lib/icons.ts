@@ -7,6 +7,7 @@ import { Resvg } from "@resvg/resvg-js";
 import pngToIco from "png-to-ico";
 
 import type { IconCandidate, IconFormat, PreparedIconAssets, SiteMetadata } from "./types.js";
+import { deriveThemeColor, getInitials, normalizeHexColor, shiftHexColor } from "./utils.js";
 
 const ICONSET_SPECS = [
   { file: "icon_16x16.png", size: 16 },
@@ -50,10 +51,7 @@ async function prepareIconAssetsUnsafe(targetDir: string, metadata: SiteMetadata
   const iconsetDir = join(targetDir, "icon.iconset");
   await mkdir(assetsDir, { recursive: true });
 
-  const loadedIcon = await loadBestIcon(metadata.iconCandidates);
-  if (!loadedIcon) {
-    return {};
-  }
+  const loadedIcon = await loadBestIcon(metadata.iconCandidates) ?? createFallbackIcon(metadata);
 
   const iconBuffers = new Map<number, Buffer>();
   for (const spec of ICONSET_SPECS) {
@@ -83,6 +81,29 @@ async function prepareIconAssetsUnsafe(targetDir: string, metadata: SiteMetadata
     ico: icoPath,
     macIconset: "icon.iconset",
     sourceUrl: loadedIcon.sourceUrl,
+  };
+}
+
+function createFallbackIcon(metadata: SiteMetadata): LoadedIcon {
+  const name = metadata.title || new URL(metadata.sourceUrl).hostname.replace(/^www\./, "");
+  const background = normalizeHexColor(metadata.themeColor) ?? deriveThemeColor(name);
+  const shadow = shiftHexColor(background, -30);
+  const initials = escapeXml(getInitials(name).slice(0, 2));
+  return {
+    format: "svg",
+    sourceUrl: "appbun:fallback-icon",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${background}" />
+      <stop offset="1" stop-color="${shadow}" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)" />
+  <circle cx="512" cy="512" r="342" fill="#ffffff" opacity="0.14" />
+  <text x="512" y="556" text-anchor="middle" dominant-baseline="middle"
+    font-family="Arial, Helvetica, sans-serif" font-size="330" font-weight="700" fill="#ffffff">${initials}</text>
+</svg>`,
   };
 }
 
@@ -342,4 +363,13 @@ function isAlmostSquare(width: number, height: number): boolean {
   }
   const ratio = Math.max(width, height) / Math.min(width, height);
   return ratio <= 1.15;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
