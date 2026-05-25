@@ -6,33 +6,60 @@
 [![npm downloads](https://img.shields.io/npm/dm/appbun?color=111827&logo=npm)](https://www.npmjs.com/package/appbun)
 [![CI](https://img.shields.io/github/actions/workflow/status/bigmacfive/appbun/ci.yml?branch=main&label=ci)](https://github.com/bigmacfive/appbun/actions/workflows/ci.yml)
 [![Last commit](https://img.shields.io/github/last-commit/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/commits/main)
-[![Closed issues](https://img.shields.io/github/issues-closed/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/issues?q=is%3Aissue+is%3Aclosed)
 [![License](https://img.shields.io/github/license/bigmacfive/appbun)](./LICENSE)
 
-한 줄 명령으로 아무 웹페이지나 데스크톱 앱으로 바꿉니다. `appbun`은 URL 하나를 [Electrobun](https://electrobun.dev) 프로젝트로 감싸고, 사이트 메타데이터에서 쓸 만한 아이콘을 가져오고, macOS 설치 흐름까지 이어지도록 패키징 경로를 잡아줍니다.
+웹사이트, localhost 앱, SaaS 대시보드를 실제 데스크톱 앱 프로젝트로 바꿉니다.
 
-macOS, Windows, Linux를 지원합니다.
+```bash
+npx appbun@latest https://github.com --name "GitHub" --dmg
+```
 
-프로젝트 목표: [Pake-grade goal](docs/pake-grade-goal.md).
+`appbun`은 정체를 알 수 없는 바이너리 하나를 던져주지 않습니다. 읽고 고칠 수 있는 [Electrobun](https://electrobun.dev) 프로젝트, 아이콘, native-runner 빌드 스크립트, macOS DMG 패키징, 에이전트용 지침까지 함께 만들어줍니다.
 
-![appbun social card](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/social-card.png)
+![appbun terminal demo](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/terminal-demo.gif)
 
-## 왜 appbun인가
+## 무엇을 얻나
 
-`appbun`은 사람들이 Pake를 찾는 이유와 같은 문제를 다룹니다. `URL -> desktop app` 흐름이 빠르고 유용하기 때문입니다.
+| 원하는 것 | 명령 | 결과 |
+| --- | --- | --- |
+| 공개 사이트 앱으로 만들기 | `appbun https://example.com --name Example` | 수정 가능한 데스크톱 wrapper 프로젝트 |
+| 로컬 프론트엔드 앱으로 만들기 | `appbun dev --name "My App"` | 흔한 localhost 포트 자동 감지 |
+| 개인용 macOS installer 만들기 | `appbun package --dmg` | 비서명 로컬 DMG |
+| signed 배포 준비 | `appbun package --dmg --sign` | `APPLE_SIGN_IDENTITY` 필요 |
+| notarized 배포 준비 | `appbun package --notarize` | Apple notary 환경변수 사용 |
+| 에이전트에게 맡기기 | `appbun skill --install-claude --cwd .` | Claude Code용 가이드 설치 |
 
-차이는 결과물입니다.
+## 60초 경로
 
-`appbun`은 결과를 블랙박스로 숨기지 않습니다. 대신 직접 읽고, 수정하고, 버전 관리하고, 배포할 수 있는 일반적인 Electrobun 프로젝트를 만들어줍니다.
+실행 중인 로컬 앱을 패키징:
 
-처리해 주는 것:
+```bash
+cd your-web-app
+npm run dev
+npx appbun@latest dev --name "My App" --out-dir ../appbun-output/my-app --yes
+cd ../appbun-output/my-app
+npx appbun@latest doctor --project
+npx appbun@latest package --install
+```
 
-- title, description, theme color, favicon, apple-touch-icon, manifest icon 수집
-- 깨진 응답이나 저품질 raster 아이콘을 패키징 전에 걸러냄
-- 대상 URL을 감싸는 로컬 Electrobun shell 생성
-- macOS에서 자주 쓰는 윈도우 chrome 패턴을 프리셋으로 고를 수 있게 생성
-- macOS용 DMG 흐름 포함, 나머지 플랫폼도 빌드 가능한 출력 제공
-- interactive 터미널에서는 파괴적이거나 무거운 작업 전에 확인 프롬프트 표시, 자동 승인은 `--yes`
+macOS에서 DMG 만들기:
+
+```bash
+npx appbun@latest package --dmg
+```
+
+생성된 프로젝트는 평범한 코드입니다. 열어보고, shell을 고치고, 커밋하고, CI에 올리고, 다른 개발자에게 넘길 수 있습니다.
+
+## 왜 다른가
+
+많은 URL-to-app 도구는 가장 짧은 데모에 집중합니다. `appbun`은 다음 날에도 계속 다룰 수 있는 결과물에 집중합니다.
+
+- **읽을 수 있는 출력**: 막힌 wrapper가 아니라 일반 Electrobun 프로젝트.
+- **쓸 만한 기본값**: 메타데이터, 테마 색상, 아이콘, fallback icon, 로컬 shell, loading/error 상태.
+- **개인 앱 친화적**: 내 맥에서 쓸 DMG까지 한 번에 갈 수 있음.
+- **정직한 릴리스 경로**: macOS, Windows, Linux native-runner 스크립트 제공. 가짜 cross-compile 약속 없음.
+- **에이전트 친화적**: Codex skill, Claude Code `CLAUDE.md`, 복붙용 prompt 제공.
+- **복구 가능**: `doctor`가 환경과 생성 프로젝트를 모두 진단.
 
 ## 설치
 
@@ -44,353 +71,229 @@ bun add -g appbun
 npm install -g appbun
 ```
 
-npm 글로벌 prefix 권한이 막혀 있으면 `bun add -g appbun`을 쓰거나 `npx appbun@latest ...`로 실행하면 됩니다.
-
-로컬 머신에 Bun이 있으면 `appbun`은 Bun을 우선 쓰고, Bun이 없으면 `--package-manager`를 강제로 주지 않는 한 npm으로 자동 폴백합니다.
-
-## 빠른 시작
+설치 없이 바로 실행:
 
 ```bash
-appbun https://chat.openai.com --name "ChatGPT" --dmg
+npx appbun@latest chatgpt --dmg
 ```
 
-이 한 줄로 프로젝트 생성, 의존성 설치, 앱 빌드, macOS DMG 생성, 설치 창 열기까지 이어집니다.
+`appbun`은 Bun이 있으면 Bun을 우선 사용합니다. Bun이 없으면 `--package-manager`로 강제하지 않는 한 npm으로 폴백할 수 있습니다.
 
-바로 빌드하지 않고 생성된 프로젝트만 받고 싶다면:
+## 핵심 명령
+
+### 생성
 
 ```bash
 appbun https://linear.app --name "Linear Desktop"
-cd linear-desktop
-bun install
-bun run build
-```
-
-처음부터 더 타이트한 macOS 상단바를 쓰고 싶다면:
-
-```bash
-appbun https://chat.openai.com --name "ChatGPT" --titlebar compact --dmg
-```
-
-가장 짧은 명령이 필요하면 내장 레시피를 바로 쓸 수 있습니다:
-
-```bash
 appbun chatgpt --dmg
-appbun github --out-dir ./github
-appbun recipes
-appbun discover design
+appbun github --titlebar compact
+appbun create https://calendar.google.com --name Calendar --width 1600 --height 1000
 ```
 
-이미 로컬 웹 앱이 실행 중이라면 appbun이 흔한 dev port를 찾아서 감쌀 수도 있습니다:
-
-```bash
-appbun dev --name "My App"
-```
-
-## CLI 예시
-
-인기 레시피 목록 보기:
+### 탐색
 
 ```bash
 appbun recipes
 appbun recipes --concept music
-```
-
-레시피 slug로 생성하기:
-
-```bash
-appbun linear --dmg
-```
-
-개념, alias, 설명으로 관련 앱 찾기:
-
-```bash
-appbun discover ai
 appbun discover design
 appbun discover gcal
 ```
 
-```bash
-appbun https://github.com --name "GitHub"
-```
+### 진단
 
 ```bash
-appbun create https://calendar.google.com \
-  --name "Calendar" \
-  --out-dir ./calendar-app \
-  --width 1600 \
-  --height 1000
-```
-
-```bash
-appbun https://chat.openai.com --theme-color '#10a37f'
-```
-
-```bash
-appbun https://www.notion.so --package-manager npm
-```
-
-```bash
-appbun https://github.com --name "GitHub" --titlebar system
-```
-
-스크립트나 CI에서 확인 프롬프트를 건너뛰려면:
-
-```bash
-appbun https://github.com --name "GitHub" --out-dir ./github --yes
-```
-
-생성된 프로젝트 폴더 안에서는 바로 진단하거나 패키징할 수 있습니다:
-
-```bash
+appbun doctor
+appbun doctor --target macos
 appbun doctor --project
+appbun doctor --project ../appbun-output/my-app --json
+```
+
+### 패키징
+
+생성된 appbun 프로젝트 안에서 실행하거나 `--cwd`를 넘기면 됩니다.
+
+```bash
 appbun package
+appbun package --install
 appbun package --dmg
 appbun package --dmg --sign
 appbun package --notarize
 ```
 
-개발 중인 웹서비스를 에이전트가 바로 데스크톱 앱으로 빼게 하고 싶다면, 아래 정적 프롬프트를 복붙하면 됩니다:
+## macOS DMG, 서명, 노터라이즈
 
-- [docs/agent-prompts/web-app-repo.ko.md](docs/agent-prompts/web-app-repo.ko.md)
-
-특정 로컬 URL 기준으로 `appbun`이 프롬프트를 미리 채워주게 하려면:
+개인용 로컬 DMG:
 
 ```bash
-appbun prompt http://localhost:3000 --name "My App"
+appbun package --dmg
 ```
 
-그러면 에이전트가 현재 웹앱을 `./desktop/my-app` 아래에 `appbun@latest`로 패키징하고 빌드하게 만드는 지시문이 출력됩니다.
+signed DMG:
 
-## Codex 스킬
+```bash
+APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+appbun package --dmg --sign
+```
 
-`appbun`은 Codex와 Claude Code용 에이전트 지침도 함께 제공합니다. 웹 개발자가 매번 명령을 외우지 않아도, 에이전트에게 웹사이트나 로컬 프론트엔드를 inspect 가능한 데스크톱 앱으로 패키징하라고 맡길 수 있습니다.
+notarized DMG:
+
+```bash
+APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+APPLE_ID="you@example.com" \
+APPLE_TEAM_ID="TEAMID" \
+APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+appbun package --notarize
+```
+
+비서명 DMG는 개인 사용과 내부 확인에 좋습니다. 공개 macOS 배포는 보통 서명과 노터라이즈가 필요합니다.
+
+## 에이전트 워크플로우
+
+Codex skill 설치:
 
 ```bash
 appbun skill --install
-appbun skill --install-claude --cwd .
 ```
 
-Codex에서는 이렇게 호출하면 됩니다:
+Codex에서 사용:
 
 ```text
 $appbun-web-desktop package my local web app at http://localhost:3000 as a desktop app
 ```
 
-이 스킬은 URL 선택, `appbun` scaffolding, 빌드 검증, `appbun doctor --target ...`, macOS/Windows/Linux native runner 패키징 원칙까지 에이전트가 따라가도록 안내합니다.
-
-Claude Code에서는 `--install-claude`가 프로젝트에 `CLAUDE.md`를 설치합니다. 그러면 Claude가 데스크톱 wrapper를 직접 손으로 만들기보다 `appbun dev`, `appbun doctor --project`, `appbun package` 흐름을 자연스럽게 사용합니다.
-
-## 내장 레시피
-
-레시피는 안정적인 URL, 표시 이름, 테마 색상, titlebar 선택을 미리 담아 둔 인기 웹앱 shortcut입니다. 데모와 반복 설치가 훨씬 짧아집니다:
+Claude Code 지침 설치:
 
 ```bash
-appbun chatgpt --dmg
-appbun ytmusic --titlebar minimal
-appbun recipes --json
+appbun skill --install-claude --cwd .
 ```
 
-현재 ChatGPT, GitHub, Linear, Notion, YouTube, YouTube Music, Excalidraw, Photopea, Squoosh, Desmos 레시피가 포함되어 있습니다. 대상이 잘 알려져 있고 안정적이라면 레시피 기여도 환영합니다.
+그러면 프로젝트에 `CLAUDE.md`가 생기고 Claude가 자연스럽게 다음 흐름을 사용합니다:
 
-`appbun discover`로 `ai`, `chat`, `design`, `developer`, `docs`, `education`, `music`, `productivity`, `work` 같은 개념을 둘러볼 수 있습니다.
+- `appbun dev`
+- `appbun doctor --project`
+- `appbun package --install`
+- `appbun package --dmg`
 
-## Doctor
-
-이슈를 올리거나 생성된 프로젝트를 디버깅하기 전에 먼저 실행해보세요:
+다른 에이전트용 일회성 프롬프트가 필요하면:
 
 ```bash
-appbun doctor
+appbun prompt http://localhost:3000 --name "My App"
 ```
 
-자동화나 이슈 템플릿에 붙일 때는:
+정적 prompt 템플릿:
 
-```bash
-appbun doctor --json
-appbun doctor --strict
-appbun doctor --target linux
+- [docs/agent-prompts/web-app-repo.md](docs/agent-prompts/web-app-repo.md)
+- [docs/agent-prompts/web-app-repo.ko.md](docs/agent-prompts/web-app-repo.ko.md)
+
+## 생성되는 프로젝트
+
+```text
+my-app/
+├── .github/workflows/release.yml
+├── assets/
+├── icon.iconset/
+├── scripts/
+│   ├── build-platform.mjs
+│   └── create-dmg.mjs
+├── src/
+│   ├── bun/index.ts
+│   └── mainview/
+│       ├── index.html
+│       ├── index.css
+│       └── index.ts
+├── appbun.generated.json
+├── electrobun.config.ts
+├── package.json
+└── tsconfig.json
 ```
 
-doctor는 Node.js, Bun, npm, Git, 플랫폼별 패키징 준비 상태를 확인합니다. native runner에서 릴리스 빌드를 준비할 때는 `--target macos`, `--target windows`, `--target linux`를 사용할 수 있습니다. 애매한 버그 리포트가 생기기 전에 설정 문제를 먼저 드러내는 것이 목적입니다.
+포함되는 것:
 
-## 윈도우 chrome 프리셋
+- `appbun.generated.json`에 source URL과 generator metadata 기록
+- 사이트 기반 또는 fallback icon 자산
+- loading/error 상태가 있는 로컬 webview shell
+- macOS titlebar preset
+- native-runner 빌드 스크립트
+- GitHub Actions release workflow
 
-이제 `appbun`은 생성되는 macOS 상단바를 한 가지 스타일로 고정하지 않고, 사용자가 프리셋으로 고를 수 있게 만들었습니다.
+## Window Chrome Presets
 
 | 프리셋 | 어울리는 경우 | macOS 동작 |
 | --- | --- | --- |
-| `system` | 가장 네이티브한 창이 좋을 때 | 기본 시스템 title bar, 로컬 shell header 없음 |
-| `unified` | 기본값, 가장 균형 잡힌 wrapper | hidden inset traffic lights + 연결된 로컬 toolbar |
-| `compact` | 콘텐츠가 우선인 앱 | 같은 패턴이지만 더 낮고 더 조밀함 |
-| `minimal` | 시각적 chrome을 덜 보이고 싶을 때 | 같은 패턴이지만 메타데이터를 줄이고 경계를 약하게 표현 |
+| `system` | 가장 네이티브한 창 | 기본 시스템 title bar |
+| `unified` | 균형 잡힌 기본값 | hidden inset traffic lights + 로컬 toolbar |
+| `compact` | 콘텐츠가 중요한 앱 | 더 낮은 unified toolbar |
+| `minimal` | 방해가 적은 wrapper | 더 가벼운 metadata와 border |
 
-Windows와 Linux에서는 현재 표준 네이티브 title bar로 폴백합니다.
+Windows와 Linux는 현재 표준 native title bar를 사용합니다.
 
-옵션 전체를 빨리 보려면:
+## Showcase
 
-```bash
-appbun create --help
-```
+로그인 없이 열리는 공개 대상들을 Playwright로 캡처한 예시입니다.
 
-## 트러블슈팅
+![appbun showcase](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/screenshots/showcase-grid.png)
+
+| 앱 | 명령 |
+| --- | --- |
+| GitHub | `appbun github --dmg` |
+| YouTube | `appbun https://www.youtube.com --name "YouTube" --dmg` |
+| Excalidraw | `appbun https://excalidraw.com --name "Excalidraw" --dmg` |
+| Photopea | `appbun https://www.photopea.com --name "Photopea" --dmg` |
+| Squoosh | `appbun https://squoosh.app --name "Squoosh" --dmg` |
+
+더 많은 예시: [docs/showcase/README.md](docs/showcase/README.md)
+
+## 문제 해결
 
 ### Bun이 설치되어 있지 않을 때
 
-이제 `appbun`은 Bun이 없는 머신에서는 생성 프로젝트와 설치/빌드 흐름에서 자동으로 npm으로 폴백합니다. 그래도 명시적으로 고르고 싶다면:
+npm을 사용하세요:
 
 ```bash
 appbun https://example.com --package-manager npm
 ```
 
-### macOS 앱이 첫 실행에 열리지 않을 때
+### 생성 프로젝트가 이상해 보일 때
 
-일부 로컬 Electrobun macOS 빌드는 첫 실행 때 launcher 권한 프롬프트가 한 번 뜰 수 있습니다. 설치한 앱이 Finder나 Dock에서 바로 열리지 않으면:
-
-1. Applications 폴더에서 앱을 찾는다.
-2. 앱을 우클릭해서 `Open`을 한 번 선택한다.
-3. macOS가 launcher 프롬프트를 띄우면 허용한다.
-
-첫 실행이 한 번 통과되면 이후에는 정상적으로 열려야 합니다.
-
-## Showcase
-
-로그인 없이 바로 동작하는 공개 웹앱을 Playwright로 캡처하고, 생성되는 shell 느낌에 맞춰 프레임한 예시입니다.
-
-![appbun showcase](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/screenshots/showcase-grid.png)
-
-### 예시 대상
-
-| 앱 | URL | 명령 |
-| --- | --- | --- |
-| GitHub | `https://github.com` | `appbun https://github.com --name "GitHub" --dmg` |
-| YouTube | `https://www.youtube.com` | `appbun https://www.youtube.com --name "YouTube" --dmg` |
-| YouTube Music | `https://music.youtube.com` | `appbun https://music.youtube.com --name "YouTube Music" --dmg` |
-| Excalidraw | `https://excalidraw.com` | `appbun https://excalidraw.com --name "Excalidraw" --dmg` |
-| Photopea | `https://www.photopea.com` | `appbun https://www.photopea.com --name "Photopea" --dmg` |
-| Google Maps | `https://www.google.com/maps` | `appbun https://www.google.com/maps --name "Google Maps" --dmg` |
-| Google Translate | `https://translate.google.com` | `appbun https://translate.google.com --name "Google Translate" --dmg` |
-| Squoosh | `https://squoosh.app` | `appbun https://squoosh.app --name "Squoosh" --dmg` |
-| Desmos | `https://www.desmos.com/calculator` | `appbun https://www.desmos.com/calculator --name "Desmos" --dmg` |
-
-자세한 내용은 [docs/showcase/README.md](./docs/showcase/README.md)에 있습니다.
-
-## 생성되는 프로젝트 구조
-
-```text
-my-app/
-├── .github/
-│   └── workflows/
-│       └── release.yml    # native-runner artifact build workflow
-├── assets/                 # 패키징용으로 정리된 아이콘 자산
-├── icon.iconset/           # macOS iconset 크기들 (16~1024)
-├── scripts/
-│   ├── build-platform.mjs  # 플랫폼 빌드용 native-runner guard
-│   └── create-dmg.mjs      # macOS DMG helper
-├── src/
-│   ├── bun/
-│   │   └── index.ts        # Electrobun window entrypoint
-│   └── mainview/
-│       ├── index.html      # 로컬 shell 마크업
-│       ├── index.css       # 통합 title area 스타일
-│       └── index.ts        # remote webview 부트스트랩
-├── electrobun.config.ts
-├── appbun.generated.json
-├── package.json
-└── tsconfig.json
-```
-
-## 플랫폼 메모
-
-### macOS
-
-생성 앱은 다음 중 하나를 사용합니다.
-
-- `--titlebar system`일 때 기본 시스템 title bar
-- `--titlebar unified`, `compact`, `minimal`일 때 `hiddenInset` traffic lights
-- 연결형 프리셋에서 `UnifiedTitleAndToolbar` + `FullSizeContentView`
-- 고정된 가짜 헤더 하나가 아니라 선택한 프리셋에 맞는 로컬 title area
-- 비서명 설치형 배포를 위한 `build:dmg`
-
-생성된 `build:dmg` 스크립트가 DMG 생성 전에 `.app`을 서명하게 하려면 로컬 Developer ID Application identity를 `APPLE_SIGN_IDENTITY`로 지정합니다:
+실행:
 
 ```bash
-APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" bun run build:dmg
+appbun doctor --project
 ```
 
-서명 identity가 없을 때 비서명 패키징으로 넘어가지 않고 실패해야 한다면 `APPBUN_DMG_SIGN=1`을 함께 설정합니다.
+### macOS 앱이 첫 실행에 열리지 않을 때
 
-외부 배포용 notarized DMG가 필요하면 생성 프로젝트의 `build:dmg:notarized`를 사용할 수 있습니다. macOS와 Xcode tools가 필요하고 `APPLE_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`를 설정해야 합니다.
+일부 로컬 Electrobun macOS 빌드는 첫 실행 때 launcher 권한 프롬프트가 한 번 뜰 수 있습니다.
 
-### Windows 와 Linux
+1. Applications 폴더를 엽니다.
+2. 앱을 우클릭하고 `Open`을 선택합니다.
+3. macOS launcher 프롬프트가 뜨면 허용합니다.
 
-생성된 Electrobun 프로젝트에는 플랫폼별 native-runner 패키징 스크립트가 기본 포함됩니다:
-
-- Windows에서는 `bun run build:windows`
-- Linux에서는 `bun run build:linux`
-- macOS에서는 `bun run build:macos`
-
-Electrobun 빌드는 대상 플랫폼의 native runner에서 실행하는 것을 기준으로 합니다. `bun run build:all`은 로컬 cross-compile 명령이 아니라 CI matrix를 떠올리게 하는 안내용 명령입니다. Windows/Linux installer helper는 아직 로드맵에 있습니다.
-
-생성 프로젝트에는 `.github/workflows/release.yml`도 포함됩니다. 이 workflow는 수동 실행 또는 GitHub Release 발행 시 macOS, Windows, Linux GitHub-hosted runner에서 artifact를 빌드합니다.
-
-## 로컬 개발
+## 개발
 
 ```bash
 bun install
 bun run check
 bun run test
 bun run build
+npm pack --dry-run
 ```
 
-## showcase 자산 갱신
+showcase 자산 갱신:
 
 ```bash
 bunx playwright install chromium
 bun run showcase:capture
 ```
 
-이 명령은 다음을 갱신합니다.
-
-- `docs/screenshots/*.png`
-- `docs/assets/social-card.png`
-- `docs/showcase/manifest.json`
-
-## 릴리즈 점검
-
-```bash
-bun run release:check
-```
-
 ## 기여
 
-기여 기준은 단순합니다. 생성 앱 품질, 패키징 흐름, 문서를 개선하고, 재현 가능한 테스트나 샘플 scaffold로 증명하면 됩니다.
+[CONTRIBUTING.md](CONTRIBUTING.md)와 [Pake-grade goal](docs/pake-grade-goal.md)부터 읽어주세요.
 
-시작 지점:
+가치가 큰 영역:
 
-- [CONTRIBUTING.md](./CONTRIBUTING.md)
-- [Bug report template](./.github/ISSUE_TEMPLATE/bug_report.yml)
-- [Feature request template](./.github/ISSUE_TEMPLATE/feature_request.yml)
-
-가치가 큰 기여 영역:
-
-- 사이트별 아이콘 선택 휴리스틱 개선
 - Windows installer helper
 - Linux packaging helper
-- auth-heavy 웹앱 preset
-- navigation control 과 app menu
-- 문서, gallery, compatibility notes
-
-## 포지셔닝
-
-아래 같은 검색어를 찾고 있다면 이 프로젝트와 맞습니다.
-
-- Electrobun용 Pake 대안
-- Bun으로 웹사이트를 데스크톱 앱으로 만들기
-- website to desktop app CLI
-- URL을 macOS 앱으로 패키징하기
-- web app wrapper에서 DMG 만들기
-- Electrobun app generator
-- macOS, Windows, Linux용 website wrapper
-
-## 라이선스
-
-MIT
+- 더 안정적인 site metadata와 icon heuristic
+- 인증이 많은 웹앱 recipe
+- 생성 shell UX 개선

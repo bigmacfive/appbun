@@ -197,8 +197,7 @@ function checkMacSigningReadiness(target?: DoctorTarget): DoctorCheck | undefine
     };
   }
 
-  const codesign = commandVersion("codesign", ["--version"]);
-  if (!codesign) {
+  if (!commandExists("codesign")) {
     return {
       name: "macOS code signing",
       status: "warn",
@@ -295,6 +294,15 @@ function commandOutput(command: string, args: string[]): string | undefined {
   }
 
   return (result.stdout || result.stderr).trim();
+}
+
+function commandExists(command: string): boolean {
+  const result = spawnSync(command, ["-h"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  return !result.error;
 }
 
 function statusLabel(status: DoctorStatus): string {

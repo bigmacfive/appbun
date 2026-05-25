@@ -6,35 +6,60 @@
 [![npm downloads](https://img.shields.io/npm/dm/appbun?color=111827&logo=npm)](https://www.npmjs.com/package/appbun)
 [![CI](https://img.shields.io/github/actions/workflow/status/bigmacfive/appbun/ci.yml?branch=main&label=ci)](https://github.com/bigmacfive/appbun/actions/workflows/ci.yml)
 [![Last commit](https://img.shields.io/github/last-commit/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/commits/main)
-[![Closed issues](https://img.shields.io/github/issues-closed/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/issues?q=is%3Aissue+is%3Aclosed)
 [![License](https://img.shields.io/github/license/bigmacfive/appbun)](./LICENSE)
 
-Turn any webpage into a desktop app with one command. `appbun` wraps a URL in an [Electrobun](https://electrobun.dev) project, pulls usable icons from site metadata, and gives you installer-friendly packaging for macOS with a clean path to Windows and Linux builds.
+Turn a website, localhost app, or SaaS dashboard into a real desktop app project.
 
-Supports macOS, Windows, and Linux.
+```bash
+npx appbun@latest https://github.com --name "GitHub" --dmg
+```
 
-Project ambition: [Pake-grade goal](docs/pake-grade-goal.md).
-
-![appbun social card](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/social-card.png)
+`appbun` does not give you a mystery binary. It generates an inspectable [Electrobun](https://electrobun.dev) project with source code, icons, native-runner build scripts, macOS DMG packaging, and agent-friendly instructions.
 
 ![appbun terminal demo](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/terminal-demo.gif)
 
-## Why appbun
+## What You Get
 
-`appbun` exists for the same reason people reach for Pake: the fast `URL -> desktop app` workflow is useful.
+| Need | Command | Result |
+| --- | --- | --- |
+| Package a public site | `appbun https://example.com --name Example` | Editable desktop wrapper project |
+| Package your local frontend | `appbun dev --name "My App"` | Auto-detects common localhost ports |
+| Make a personal macOS installer | `appbun package --dmg` | Unsigned local DMG |
+| Prepare signed distribution | `appbun package --dmg --sign` | Requires `APPLE_SIGN_IDENTITY` |
+| Prepare notarized distribution | `appbun package --notarize` | Uses Apple notary env vars |
+| Let an agent do it | `appbun skill --install-claude --cwd .` | Claude Code guide in your repo |
 
-The difference is the output.
+## The 60 Second Path
 
-Instead of hiding everything behind a black box, `appbun` gives you a normal Electrobun project you can inspect, edit, version, and ship.
+Package a running local app:
 
-What it handles for you:
+```bash
+cd your-web-app
+npm run dev
+npx appbun@latest dev --name "My App" --out-dir ../appbun-output/my-app --yes
+cd ../appbun-output/my-app
+npx appbun@latest doctor --project
+npx appbun@latest package --install
+```
 
-- fetches title, description, theme color, favicon, apple-touch icon, and manifest icons
-- rejects obviously broken icon responses and low-quality raster assets before packaging
-- generates a local Electrobun shell around the target URL
-- lets you choose between common macOS window chrome presets instead of hard-coding one look
-- produces cross-platform build output, plus a macOS DMG flow for drag-to-Applications installs
-- asks before destructive or heavyweight steps in interactive terminals, with `--yes` to skip prompts
+On macOS, make a DMG:
+
+```bash
+npx appbun@latest package --dmg
+```
+
+The generated project remains normal code. Open it, edit the shell, commit it, run it in CI, or hand it to another developer.
+
+## Why It Feels Different
+
+Most URL-to-app tools optimize for the shortest demo. `appbun` optimizes for the next day too.
+
+- **Inspectable output**: a normal Electrobun project, not a sealed wrapper.
+- **Useful defaults**: metadata, theme color, icons, fallback icons, local shell, loading/error states.
+- **Personal-app friendly**: one command can get you to a macOS DMG for your own machine.
+- **Release honest**: native-runner scripts for macOS, Windows, and Linux; no fake cross-compilation promises.
+- **Agent-native**: Codex skill, Claude Code `CLAUDE.md`, and paste-ready prompts.
+- **Recoverable**: `doctor` checks both your environment and generated projects.
 
 ## Install
 
@@ -46,353 +71,229 @@ bun add -g appbun
 npm install -g appbun
 ```
 
-If your npm global prefix is permission-locked, prefer `bun add -g appbun` or use `npx appbun@latest ...`.
-
-`appbun` prefers Bun when Bun is installed locally. If it is not available, `appbun` falls back to npm automatically unless you force `--package-manager`.
-
-## Quick start
+Or skip installation:
 
 ```bash
-appbun https://chat.openai.com --name "ChatGPT" --dmg
+npx appbun@latest chatgpt --dmg
 ```
 
-That one command can scaffold the project, install dependencies, build the app, create a DMG on macOS, and open the installer window.
+`appbun` prefers Bun when it is available. If Bun is missing, it can fall back to npm unless you force `--package-manager`.
 
-If you want the generated project without building immediately:
+## Core Commands
+
+### Create
 
 ```bash
 appbun https://linear.app --name "Linear Desktop"
-cd linear-desktop
-bun install
-bun run build
-```
-
-Need a tighter macOS chrome right away:
-
-```bash
-appbun https://chat.openai.com --name "ChatGPT" --titlebar compact --dmg
-```
-
-Or use a built-in recipe when you want the shortest possible command:
-
-```bash
 appbun chatgpt --dmg
-appbun github --out-dir ./github
-appbun recipes
-appbun discover design
+appbun github --titlebar compact
+appbun create https://calendar.google.com --name Calendar --width 1600 --height 1000
 ```
 
-If your local web app is already running, let appbun find common dev ports:
-
-```bash
-appbun dev --name "My App"
-```
-
-## CLI examples
-
-List popular recipes:
+### Discover
 
 ```bash
 appbun recipes
 appbun recipes --concept music
-```
-
-Create from a recipe slug:
-
-```bash
-appbun linear --dmg
-```
-
-Find related apps by concept, alias, or description:
-
-```bash
-appbun discover ai
 appbun discover design
 appbun discover gcal
 ```
 
-```bash
-appbun https://github.com --name "GitHub"
-```
+### Diagnose
 
 ```bash
-appbun create https://calendar.google.com \
-  --name "Calendar" \
-  --out-dir ./calendar-app \
-  --width 1600 \
-  --height 1000
-```
-
-```bash
-appbun https://chat.openai.com --theme-color '#10a37f'
-```
-
-```bash
-appbun https://www.notion.so --package-manager npm
-```
-
-```bash
-appbun https://github.com --name "GitHub" --titlebar system
-```
-
-Skip confirmation prompts in scripted runs:
-
-```bash
-appbun https://github.com --name "GitHub" --out-dir ./github --yes
-```
-
-Build or diagnose a generated project from inside its folder:
-
-```bash
+appbun doctor
+appbun doctor --target macos
 appbun doctor --project
+appbun doctor --project ../appbun-output/my-app --json
+```
+
+### Package
+
+Run these inside a generated appbun project, or pass `--cwd`.
+
+```bash
 appbun package
+appbun package --install
 appbun package --dmg
 appbun package --dmg --sign
 appbun package --notarize
 ```
 
-If you are building a web app and want a coding agent to turn it into a desktop app for you, copy the prompt from:
+## macOS DMG, Signing, Notarization
 
-- [docs/agent-prompts/web-app-repo.md](docs/agent-prompts/web-app-repo.md)
-
-If you want `appbun` to prefill that prompt for a specific local URL, use:
+Local personal DMG:
 
 ```bash
-appbun prompt http://localhost:3000 --name "My App"
+appbun package --dmg
 ```
 
-That outputs a ready-to-paste instruction block telling the agent to package the current web app into `./desktop/my-app` with `appbun@latest`, then build it.
+Signed DMG:
 
-## Codex skill
+```bash
+APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+appbun package --dmg --sign
+```
 
-`appbun` also ships agent instructions so web developers can ask Codex or Claude Code to package a website or local frontend as an inspectable desktop app without remembering every command.
+Notarized DMG:
+
+```bash
+APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+APPLE_ID="you@example.com" \
+APPLE_TEAM_ID="TEAMID" \
+APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+appbun package --notarize
+```
+
+Unsigned DMGs are good for local personal use and internal checks. Public macOS distribution usually needs signing and notarization.
+
+## Agent Workflows
+
+Install the Codex skill:
 
 ```bash
 appbun skill --install
-appbun skill --install-claude --cwd .
 ```
 
-Then invoke it in Codex:
+Use it in Codex:
 
 ```text
 $appbun-web-desktop package my local web app at http://localhost:3000 as a desktop app
 ```
 
-For Claude Code, `--install-claude` writes a focused `CLAUDE.md` into the selected project so Claude naturally reaches for `appbun dev`, `appbun doctor --project`, and `appbun package` instead of improvising a desktop wrapper.
-
-The bundled agent guidance covers URL selection, `appbun` scaffolding, generated-project diagnostics, local packaging, DMG signing/notarization expectations, and native-runner packaging expectations for macOS, Windows, and Linux.
-
-## Built-in recipes
-
-Recipes are shortcuts for popular web apps with a stable URL, display name, theme color, and titlebar choice. They make demos and repeated installs much faster:
+Install Claude Code guidance into a repo:
 
 ```bash
-appbun chatgpt --dmg
-appbun ytmusic --titlebar minimal
-appbun recipes --json
+appbun skill --install-claude --cwd .
 ```
 
-Current recipes include ChatGPT, GitHub, Linear, Notion, YouTube, YouTube Music, Excalidraw, Photopea, Squoosh, and Desmos. Recipe contributions are welcome when the target is recognizable and stable.
+That writes a focused `CLAUDE.md` so Claude naturally reaches for:
 
-Use `appbun discover` to browse concepts such as `ai`, `chat`, `design`, `developer`, `docs`, `education`, `music`, `productivity`, and `work`.
+- `appbun dev`
+- `appbun doctor --project`
+- `appbun package --install`
+- `appbun package --dmg`
 
-## Doctor
-
-Before filing an issue or debugging a generated project, run:
+Need a one-off prompt for any agent?
 
 ```bash
-appbun doctor
+appbun prompt http://localhost:3000 --name "My App"
 ```
 
-For automation or issue templates:
+Static prompt templates live in:
 
-```bash
-appbun doctor --json
-appbun doctor --strict
-appbun doctor --target linux
+- [docs/agent-prompts/web-app-repo.md](docs/agent-prompts/web-app-repo.md)
+- [docs/agent-prompts/web-app-repo.ko.md](docs/agent-prompts/web-app-repo.ko.md)
+
+## Generated Project
+
+```text
+my-app/
+├── .github/workflows/release.yml
+├── assets/
+├── icon.iconset/
+├── scripts/
+│   ├── build-platform.mjs
+│   └── create-dmg.mjs
+├── src/
+│   ├── bun/index.ts
+│   └── mainview/
+│       ├── index.html
+│       ├── index.css
+│       └── index.ts
+├── appbun.generated.json
+├── electrobun.config.ts
+├── package.json
+└── tsconfig.json
 ```
 
-The doctor checks Node.js, Bun, npm, Git, and platform packaging readiness. Use `--target macos`, `--target windows`, or `--target linux` when preparing release builds on native runners. It is meant to make setup problems obvious before they become vague bug reports.
+The generated app includes:
 
-## Window chrome presets
+- source URL and generator metadata in `appbun.generated.json`
+- site-derived or fallback icon assets
+- a local webview shell with loading/error states
+- macOS titlebar presets
+- native-runner build scripts
+- GitHub Actions release workflow
 
-`appbun` now exposes the generated macOS title area as a user choice instead of locking every app to one look.
+## Window Chrome Presets
 
 | Preset | Best for | macOS behavior |
 | --- | --- | --- |
-| `system` | strict native window chrome | default system title bar, no local shell header |
-| `unified` | default, balanced desktop wrapper | hidden inset traffic lights with a connected local toolbar |
-| `compact` | content-heavy apps | same pattern, but shorter and tighter |
-| `minimal` | distraction-free wrappers | same pattern, but lighter metadata and less visible chrome |
+| `system` | strict native chrome | default system title bar |
+| `unified` | balanced default | hidden inset traffic lights plus local toolbar |
+| `compact` | content-heavy apps | shorter unified toolbar |
+| `minimal` | distraction-free wrappers | lighter metadata and border treatment |
 
-On Windows and Linux, generated apps fall back to the standard native title bar.
+Windows and Linux currently use the standard native title bar.
 
-To inspect every option quickly:
+## Showcase
 
-```bash
-appbun create --help
-```
+Public no-login targets captured with Playwright:
+
+![appbun showcase](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/screenshots/showcase-grid.png)
+
+| App | Command |
+| --- | --- |
+| GitHub | `appbun github --dmg` |
+| YouTube | `appbun https://www.youtube.com --name "YouTube" --dmg` |
+| Excalidraw | `appbun https://excalidraw.com --name "Excalidraw" --dmg` |
+| Photopea | `appbun https://www.photopea.com --name "Photopea" --dmg` |
+| Squoosh | `appbun https://squoosh.app --name "Squoosh" --dmg` |
+
+More examples: [docs/showcase/README.md](docs/showcase/README.md)
 
 ## Troubleshooting
 
 ### Bun is not installed
 
-If Bun is not installed on the machine running `appbun`, the CLI now falls back to npm automatically for generated projects and install/build flows. You can still force one side explicitly with:
+Use npm:
 
 ```bash
 appbun https://example.com --package-manager npm
 ```
 
-### macOS app does not open the first time
+### Generated project looks suspicious
 
-Some local Electrobun macOS builds can trigger a one-time launcher permission prompt. If the installed app does not open from Finder or the Dock on first launch:
-
-1. Open the Applications folder.
-2. Right-click the app and choose `Open` once.
-3. If macOS shows a launcher prompt, allow it.
-
-After the first successful launch, the app should behave normally.
-
-## Showcase
-
-Public no-login web apps captured with Playwright and framed to match the generated shell:
-
-![appbun showcase](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/screenshots/showcase-grid.png)
-
-### Example targets
-
-| App | URL | Command |
-| --- | --- | --- |
-| GitHub | `https://github.com` | `appbun https://github.com --name "GitHub" --dmg` |
-| YouTube | `https://www.youtube.com` | `appbun https://www.youtube.com --name "YouTube" --dmg` |
-| YouTube Music | `https://music.youtube.com` | `appbun https://music.youtube.com --name "YouTube Music" --dmg` |
-| Excalidraw | `https://excalidraw.com` | `appbun https://excalidraw.com --name "Excalidraw" --dmg` |
-| Photopea | `https://www.photopea.com` | `appbun https://www.photopea.com --name "Photopea" --dmg` |
-| Google Maps | `https://www.google.com/maps` | `appbun https://www.google.com/maps --name "Google Maps" --dmg` |
-| Google Translate | `https://translate.google.com` | `appbun https://translate.google.com --name "Google Translate" --dmg` |
-| Squoosh | `https://squoosh.app` | `appbun https://squoosh.app --name "Squoosh" --dmg` |
-| Desmos | `https://www.desmos.com/calculator` | `appbun https://www.desmos.com/calculator --name "Desmos" --dmg` |
-
-More detail lives in [docs/showcase/README.md](docs/showcase/README.md).
-
-## Generated project structure
-
-```text
-my-app/
-├── .github/
-│   └── workflows/
-│       └── release.yml    # native-runner artifact build workflow
-├── assets/                 # Derived icon assets for packaging
-├── icon.iconset/           # macOS iconset sizes (16 through 1024)
-├── scripts/
-│   ├── build-platform.mjs  # native-runner guard for platform builds
-│   └── create-dmg.mjs      # macOS DMG helper
-├── src/
-│   ├── bun/
-│   │   └── index.ts        # Electrobun window entrypoint
-│   └── mainview/
-│       ├── index.html      # Local shell markup
-│       ├── index.css       # Unified title area styles
-│       └── index.ts        # Embedded remote webview bootstrap
-├── electrobun.config.ts
-├── appbun.generated.json
-├── package.json
-└── tsconfig.json
-```
-
-## Platform notes
-
-### macOS
-
-Generated apps can use:
-
-- the default system title bar with `--titlebar system`
-- `hiddenInset` traffic lights with `--titlebar unified`, `compact`, or `minimal`
-- `UnifiedTitleAndToolbar` plus `FullSizeContentView` for the connected presets
-- a local title area sized to match the selected preset instead of one fixed fake header
-- `build:dmg` for unsigned installer-style distribution
-
-Set `APPLE_SIGN_IDENTITY` to a local Developer ID Application identity when you want the generated `build:dmg` script to sign the `.app` before creating the DMG:
+Run:
 
 ```bash
-APPLE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" bun run build:dmg
+appbun doctor --project
 ```
 
-Set `APPBUN_DMG_SIGN=1` when the DMG flow should fail instead of falling back to unsigned packaging if no signing identity is configured.
+### macOS app does not open the first time
 
-For notarized public distribution, generated projects also include `build:dmg:notarized`. It requires `APPLE_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_TEAM_ID`, and `APPLE_APP_SPECIFIC_PASSWORD` on macOS with Xcode tools installed.
+Some local Electrobun macOS builds can trigger a one-time launcher permission prompt.
 
-### Windows and Linux
+1. Open the Applications folder.
+2. Right-click the app and choose `Open`.
+3. Allow the macOS launcher prompt if it appears.
 
-The generated Electrobun project includes native-runner packaging scripts for each platform:
-
-- `bun run build:windows` on Windows
-- `bun run build:linux` on Linux
-- `bun run build:macos` on macOS
-
-Electrobun builds should run on a native runner for the target platform. `bun run build:all` is intentionally a CI matrix reminder, not a local cross-compile command. Windows and Linux installer helpers are still on the roadmap.
-
-Generated projects also include `.github/workflows/release.yml`, which builds artifacts on macOS, Windows, and Linux GitHub-hosted runners when run manually or when a GitHub Release is published.
-
-## Local development
+## Development
 
 ```bash
 bun install
 bun run check
 bun run test
 bun run build
+npm pack --dry-run
 ```
 
-## Refresh showcase assets
+Refresh showcase assets:
 
 ```bash
 bunx playwright install chromium
 bun run showcase:capture
 ```
 
-This updates:
-
-- `docs/screenshots/*.png`
-- `docs/assets/social-card.png`
-- `docs/showcase/manifest.json`
-
-## Release checks
-
-```bash
-bun run release:check
-```
-
 ## Contributing
 
-The contribution bar is straightforward: improve the generated app quality, packaging flow, or docs, and prove it with a reproducible test or sample scaffold.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [Pake-grade goal](docs/pake-grade-goal.md).
 
-Start here:
+High-value areas:
 
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [Bug report template](.github/ISSUE_TEMPLATE/bug_report.yml)
-- [Feature request template](.github/ISSUE_TEMPLATE/feature_request.yml)
-
-High-value contribution areas:
-
-- better site-specific icon heuristics
 - Windows installer helpers
 - Linux packaging helpers
-- auth-heavy web app presets
-- navigation controls and app menus
-- docs, gallery, and compatibility notes
-
-## Positioning
-
-If you are searching for any of these, this project is in the right lane:
-
-- Pake alternative for Electrobun
-- turn website into desktop app with Bun
-- website to desktop app CLI
-- package URL as a macOS app
-- create DMG from a web app wrapper
-- Electrobun app generator
-- website wrapper for macOS, Windows, and Linux
-
-## License
-
-MIT
+- more reliable site metadata and icon heuristics
+- auth-heavy web app recipes
+- stronger generated shell UX
