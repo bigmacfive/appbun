@@ -11,7 +11,7 @@
 Turn a website, localhost app, or SaaS dashboard into a real desktop app project.
 
 ```bash
-npx appbun@latest https://github.com --name "GitHub" --dmg
+npx -y appbun@latest https://github.com --name "GitHub" --dmg
 ```
 
 `appbun` does not give you a mystery binary. It generates an inspectable [Electrobun](https://electrobun.dev) project with source code, icons, native-runner build scripts, macOS DMG packaging, and agent-friendly instructions.
@@ -24,7 +24,8 @@ npx appbun@latest https://github.com --name "GitHub" --dmg
 | --- | --- | --- |
 | Package a public site | `appbun https://example.com --name Example` | Editable desktop wrapper project |
 | Package your local frontend | `appbun dev --name "My App"` | Auto-detects common localhost ports |
-| Make a personal macOS installer | `appbun package --dmg` | Unsigned local DMG |
+| Generate and package in one go | `appbun https://example.com --name Example --dmg` | Project plus unsigned macOS DMG |
+| Make a personal macOS installer | `appbun package --dmg` | Unsigned local DMG from inside a generated project |
 | Prepare signed distribution | `appbun package --dmg --sign` | Requires `APPLE_SIGN_IDENTITY` |
 | Prepare notarized distribution | `appbun package --notarize` | Uses Apple notary env vars |
 | Let an agent do it | `appbun skill --install-claude --cwd .` | Claude Code guide in your repo |
@@ -36,19 +37,21 @@ Package a running local app:
 ```bash
 cd your-web-app
 npm run dev
-npx appbun@latest dev --name "My App" --out-dir ../appbun-output/my-app --yes
+npx -y appbun@latest dev --name "My App" --out-dir ../appbun-output/my-app --yes
 cd ../appbun-output/my-app
-npx appbun@latest doctor --project
-npx appbun@latest package --install
+npx -y appbun@latest doctor --project
+npx -y appbun@latest package --install
 ```
 
 On macOS, make a DMG:
 
 ```bash
-npx appbun@latest package --dmg
+npx -y appbun@latest package --dmg
 ```
 
 The generated project remains normal code. Open it, edit the shell, commit it, run it in CI, or hand it to another developer.
+
+This path is smoke-tested against `appbun@latest`: scaffold a public URL, inspect `appbun.generated.json`, install dependencies, build the Electrobun app, and create an unsigned macOS DMG.
 
 ## Why It Feels Different
 
@@ -74,7 +77,7 @@ npm install -g appbun
 Or skip installation:
 
 ```bash
-npx appbun@latest chatgpt --dmg
+npx -y appbun@latest chatgpt --dmg
 ```
 
 `appbun` prefers Bun when it is available. If Bun is missing, it can fall back to npm unless you force `--package-manager`.

@@ -11,7 +11,7 @@
 웹사이트, localhost 앱, SaaS 대시보드를 실제 데스크톱 앱 프로젝트로 바꿉니다.
 
 ```bash
-npx appbun@latest https://github.com --name "GitHub" --dmg
+npx -y appbun@latest https://github.com --name "GitHub" --dmg
 ```
 
 `appbun`은 정체를 알 수 없는 바이너리 하나를 던져주지 않습니다. 읽고 고칠 수 있는 [Electrobun](https://electrobun.dev) 프로젝트, 아이콘, native-runner 빌드 스크립트, macOS DMG 패키징, 에이전트용 지침까지 함께 만들어줍니다.
@@ -24,9 +24,10 @@ npx appbun@latest https://github.com --name "GitHub" --dmg
 | --- | --- | --- |
 | 공개 사이트 앱으로 만들기 | `appbun https://example.com --name Example` | 수정 가능한 데스크톱 wrapper 프로젝트 |
 | 로컬 프론트엔드 앱으로 만들기 | `appbun dev --name "My App"` | 흔한 localhost 포트 자동 감지 |
-| 개인용 macOS installer 만들기 | `appbun package --dmg` | 비서명 로컬 DMG |
-| signed 배포 준비 | `appbun package --dmg --sign` | `APPLE_SIGN_IDENTITY` 필요 |
-| notarized 배포 준비 | `appbun package --notarize` | Apple notary 환경변수 사용 |
+| 생성과 패키징 한 번에 하기 | `appbun https://example.com --name Example --dmg` | 프로젝트와 비서명 macOS DMG |
+| 개인용 macOS installer 만들기 | `appbun package --dmg` | 생성 프로젝트 안에서 비서명 로컬 DMG 생성 |
+| 서명 배포 준비 | `appbun package --dmg --sign` | `APPLE_SIGN_IDENTITY` 필요 |
+| 노터라이즈 배포 준비 | `appbun package --notarize` | Apple notary 환경변수 사용 |
 | 에이전트에게 맡기기 | `appbun skill --install-claude --cwd .` | Claude Code용 가이드 설치 |
 
 ## 60초 경로
@@ -36,19 +37,21 @@ npx appbun@latest https://github.com --name "GitHub" --dmg
 ```bash
 cd your-web-app
 npm run dev
-npx appbun@latest dev --name "My App" --out-dir ../appbun-output/my-app --yes
+npx -y appbun@latest dev --name "My App" --out-dir ../appbun-output/my-app --yes
 cd ../appbun-output/my-app
-npx appbun@latest doctor --project
-npx appbun@latest package --install
+npx -y appbun@latest doctor --project
+npx -y appbun@latest package --install
 ```
 
 macOS에서 DMG 만들기:
 
 ```bash
-npx appbun@latest package --dmg
+npx -y appbun@latest package --dmg
 ```
 
 생성된 프로젝트는 평범한 코드입니다. 열어보고, shell을 고치고, 커밋하고, CI에 올리고, 다른 개발자에게 넘길 수 있습니다.
+
+이 경로는 `appbun@latest` 기준으로 스모크 테스트합니다: 공개 URL scaffold, `appbun.generated.json` 확인, 의존성 설치, Electrobun 앱 빌드, 비서명 macOS DMG 생성.
 
 ## 왜 다른가
 
@@ -74,7 +77,7 @@ npm install -g appbun
 설치 없이 바로 실행:
 
 ```bash
-npx appbun@latest chatgpt --dmg
+npx -y appbun@latest chatgpt --dmg
 ```
 
 `appbun`은 Bun이 있으면 Bun을 우선 사용합니다. Bun이 없으면 `--package-manager`로 강제하지 않는 한 npm으로 폴백할 수 있습니다.
