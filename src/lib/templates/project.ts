@@ -4,8 +4,7 @@ import { generatedCreateDmgScript } from "./dmg.js";
 import { generatedReleaseWorkflow } from "./release.js";
 import { generatedBunEntry, generatedMainviewCss, generatedMainviewEntry, generatedMainviewHtml } from "./shell.js";
 import { getTitlebarPreset } from "./titlebar.js";
-
-const APPBUN_GENERATOR_VERSION = "0.10.1";
+import { getAppbunVersion } from "../version.js";
 
 export function renderTemplateFiles(config: ResolvedAppConfig, icons: PreparedIconAssets): GeneratedFile[] {
   return [
@@ -29,7 +28,7 @@ function generatedManifest(config: ResolvedAppConfig, icons: PreparedIconAssets)
   return prettyJson({
     generator: {
       name: "appbun",
-      version: APPBUN_GENERATOR_VERSION,
+      version: getAppbunVersion(),
     },
     app: {
       name: config.name,

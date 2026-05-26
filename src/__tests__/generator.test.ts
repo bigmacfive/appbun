@@ -12,6 +12,7 @@ import { runProjectDoctor } from "../lib/project-doctor.js";
 import { findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "../lib/recipes.js";
 import { codexSkillName, getBundledClaudeGuidePath, getBundledSkillPath, installClaudeGuide } from "../lib/skill.js";
 import { deriveIdentifier, isDirectoryEmpty, normalizeHexColor, slugify, suggestAlternativeOutputDirectory } from "../lib/utils.js";
+import { getAppbunVersion } from "../lib/version.js";
 
 const tempDirs: string[] = [];
 const svgIconDataUrl = `data:image/svg+xml,${encodeURIComponent(
@@ -266,7 +267,9 @@ describe("generator", () => {
     expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("APPLE_SIGN_IDENTITY");
     expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("APPLE_NOTARIZE");
     expect(files.find((file) => file.path === "scripts/create-dmg.mjs")?.content).toContain("codesign");
-    expect(files.find((file) => file.path === "appbun.generated.json")?.content).toContain('"generator"');
+    const manifest = files.find((file) => file.path === "appbun.generated.json")?.content ?? "";
+    expect(manifest).toContain('"generator"');
+    expect(manifest).toContain(`"version": "${getAppbunVersion()}"`);
   });
 
   test("system titlebar preset falls back to native chrome", () => {

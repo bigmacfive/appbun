@@ -24,6 +24,7 @@ import { appRecipes, findAppRecipe, formatConceptTable, formatRecipeTable, listR
 import { getBundledClaudeGuidePath, getBundledSkillPath, installClaudeGuide, installCodexSkill } from "./lib/skill.js";
 import type { CreateCommandOptions, TitlebarStyle } from "./lib/types.js";
 import { clearDirectoryContents, displayPath, isDirectoryEmpty, suggestAlternativeOutputDirectory } from "./lib/utils.js";
+import { getAppbunVersion } from "./lib/version.js";
 
 const defaultPackageManager = detectPreferredPackageManager();
 const defaultOptions: CreateCommandOptions = {
@@ -49,7 +50,7 @@ program
   .description("Generate an Electrobun desktop wrapper from any web app URL.")
   .showSuggestionAfterError()
   .showHelpAfterError()
-  .version("0.10.1");
+  .version(getAppbunVersion());
 
 program
   .command("create")
