@@ -75,6 +75,7 @@ Use `--copy` only when clipboard access is acceptable.
 Before considering the desktop wrapper done:
 
 - The generated app name, package name, icon, window size, and theme color match the product.
+- On macOS, standard keyboard shortcuts (`Cmd+C/V/X/A/Z/Shift+Z/Q/R/M`) and the right-click Cut/Copy items work immediately in the built app.
 - The wrapper source is committed or clearly isolated from the main web app in a dedicated output directory.
 - `bun run build` succeeds inside the generated project, or the remaining blocker is stated with logs.
 - `appbun doctor --project` is run in the generated project and warnings are explained.

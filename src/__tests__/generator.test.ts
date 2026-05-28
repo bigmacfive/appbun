@@ -270,6 +270,76 @@ describe("generator", () => {
     const manifest = files.find((file) => file.path === "appbun.generated.json")?.content ?? "";
     expect(manifest).toContain('"generator"');
     expect(manifest).toContain(`"version": "${getAppbunVersion()}"`);
+    expect(files.find((file) => file.path === "tsconfig.json")?.content).toContain('"esModuleInterop": true');
+  });
+
+  test("generated bun entry installs the macOS application menu", () => {
+    const config = resolveAppConfig(
+      "https://example.com",
+      {
+        width: 1400,
+        height: 900,
+        packageManager: "bun",
+        install: false,
+        dmg: false,
+        yes: false,
+        showConfig: false,
+        quiet: true,
+      },
+      {
+        title: "Example",
+        description: "Example app",
+        themeColor: "#336699",
+        sourceUrl: "https://example.com",
+        iconCandidates: [],
+      },
+    );
+
+    const files = renderTemplateFiles(config, {});
+    const bunEntry = files.find((file) => file.path === "src/bun/index.ts")?.content ?? "";
+
+    expect(bunEntry).toContain('import Electrobun, { BrowserWindow, ApplicationMenu } from "electrobun/bun"');
+
+    expect(bunEntry).toContain("if (isMac) {");
+    expect((bunEntry.match(/const isMac = /g) ?? []).length).toBe(1);
+
+    expect(bunEntry).toContain("ApplicationMenu.setApplicationMenu(");
+
+    expect(bunEntry).toContain('role: "copy"');
+    expect(bunEntry).toContain('role: "paste"');
+    expect(bunEntry).toContain('role: "cut"');
+    expect(bunEntry).toContain('role: "selectAll"');
+    expect(bunEntry).toContain('role: "undo"');
+    expect(bunEntry).toContain('role: "redo"');
+    expect(bunEntry).toContain('role: "pasteAndMatchStyle"');
+    expect(bunEntry).toContain('role: "delete"');
+
+    expect(bunEntry).toContain('role: "hide"');
+    expect(bunEntry).toContain('role: "hideOthers"');
+    expect(bunEntry).toContain('role: "showAll"');
+    expect(bunEntry).toContain('role: "quit"');
+
+    expect(bunEntry).toContain('action: "reload-app"');
+    expect(bunEntry).toContain('accelerator: "r"');
+    expect(bunEntry).toContain('role: "toggleFullScreen"');
+
+    expect(bunEntry).toContain('role: "minimize"');
+    expect(bunEntry).toContain('role: "zoom"');
+    expect(bunEntry).toContain('role: "bringAllToFront"');
+
+    expect(bunEntry).toContain("document.getElementById('remote-app')?.reload()");
+    expect(bunEntry).not.toContain("location.reload()");
+    expect(bunEntry).toContain("mainWindow.webview.executeJavascript(");
+
+    expect(bunEntry).toContain("let menuHandlerRegistered = false");
+    expect(bunEntry.indexOf("menuHandlerRegistered")).toBeLessThan(
+      bunEntry.indexOf("if (isMac) {"),
+    );
+    expect(bunEntry).toContain("menuHandlerRegistered = true");
+    expect(bunEntry.indexOf("menuHandlerRegistered = true")).toBeGreaterThan(
+      bunEntry.indexOf("if (!menuHandlerRegistered)"),
+    );
+    expect(bunEntry).toContain('Electrobun.events.on("application-menu-clicked"');
   });
 
   test("system titlebar preset falls back to native chrome", () => {

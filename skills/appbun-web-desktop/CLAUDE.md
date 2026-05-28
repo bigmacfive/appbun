@@ -41,6 +41,10 @@ npx -y appbun@latest doctor --project
 npx -y appbun@latest package --install
 ```
 
+After installing the built macOS DMG, also confirm desktop fundamentals:
+
+- In any text input on the launched app, `Cmd+C/V/X/A/Z/Shift+Z` work, the App / Edit / View / Window menus appear in the menu bar, and right-click Cut/Copy are enabled when text is selected. If they are not, the generated `src/bun/index.ts` is likely missing the `ApplicationMenu.setApplicationMenu(...)` call.
+
 On macOS, build a local DMG:
 
 ```bash

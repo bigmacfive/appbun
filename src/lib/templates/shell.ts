@@ -11,9 +11,10 @@ export function generatedBunEntry(config: ResolvedAppConfig): string {
         FullSizeContentView: true,
       }`
     : "{}";
-  return `import { BrowserWindow } from "electrobun/bun";
+  return `import Electrobun, { BrowserWindow, ApplicationMenu } from "electrobun/bun";
 
 const isMac = process.platform === "darwin";
+let menuHandlerRegistered = false;
 
 const mainWindow = new BrowserWindow({
   title: ${JSON.stringify(config.title)},
@@ -32,6 +33,45 @@ const mainWindow = new BrowserWindow({
 mainWindow.webview.on("dom-ready", () => {
   console.log(${JSON.stringify(`${config.name} shell loaded`)})
 });
+
+if (isMac) {
+  ApplicationMenu.setApplicationMenu([
+    { submenu: [
+      { role: "hide" }, { role: "hideOthers" }, { role: "showAll" },
+      { type: "separator" }, { role: "quit" },
+    ]},
+    { label: "Edit", submenu: [
+      { role: "undo" }, { role: "redo" }, { type: "separator" },
+      { role: "cut" }, { role: "copy" }, { role: "paste" },
+      { role: "pasteAndMatchStyle" }, { role: "delete" }, { role: "selectAll" },
+    ]},
+    { label: "View", submenu: [
+      { label: "Reload", action: "reload-app", accelerator: "r" },
+      { role: "toggleFullScreen" },
+    ]},
+    { label: "Window", submenu: [
+      { role: "minimize" }, { role: "zoom" },
+      { type: "separator" },
+      { role: "bringAllToFront" },
+    ]},
+  ]);
+
+  const handleMenuClick = (e: { data: { action?: string } }) => {
+    if (e.data.action === "reload-app") {
+      const result: unknown = mainWindow.webview.executeJavascript(
+        "document.getElementById('remote-app')?.reload()"
+      );
+      if (result && typeof (result as { catch?: unknown }).catch === "function") {
+        (result as Promise<unknown>).catch(() => {});
+      }
+    }
+  };
+
+  if (!menuHandlerRegistered) {
+    Electrobun.events.on("application-menu-clicked", handleMenuClick);
+    menuHandlerRegistered = true;
+  }
+}
 
 console.log(${JSON.stringify(startMessage)});
 console.log(${JSON.stringify(descriptionMessage)});
