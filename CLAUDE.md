@@ -24,7 +24,7 @@ bun test src/__tests__/generator.test.ts
 bun test src --test-name-pattern "writes electrobun.config"
 ```
 
-CI (`.github/workflows/ci.yml`) runs `check`, `test`, `build`, and `npm pack --dry-run`. A separate `scaffold.yml` smoke-tests `node ./bin/appbun.js https://example.com ...` and asserts specific files in the generated project — keep those file paths and the `APPLE_SIGN_IDENTITY` / `APPLE_NOTARIZE` / `shell-status` / `appbun.generated.json` references intact in templates.
+CI (`.github/workflows/ci.yml`) runs `check`, `test`, `build`, and `npm pack --dry-run`. A separate `scaffold-smoke.yml` smoke-tests `node ./bin/appbun.js https://example.com ...` and asserts specific files in the generated project — keep these references intact in templates: `APPLE_SIGN_IDENTITY`, `APPLE_NOTARIZE`, `shell-status`, `appbun.generated.json`, `ApplicationMenu.setApplicationMenu`, `process.platform === "darwin"`, and the literal `role: "copy"` (the Edit-menu role) in `src/bun/index.ts`.
 
 ## Architecture
 
@@ -33,7 +33,7 @@ Entry flow: `bin/appbun.js` → `dist/cli.js` (compiled from `src/cli.ts`). `src
 `src/lib/` is the library layer the CLI orchestrates — keep CLI thin, put logic here:
 
 - `generator.ts` — `resolveAppConfig`, `writeProject`, `installDependencies`, `runPackageScript`. Owns the contract between CLI options and the on-disk Electrobun project.
-- `templates/` — render functions that emit every file in the generated project (`project.ts` is the entry, plus `shell.ts`, `titlebar.ts`, `dmg.ts`, `release.ts`). The CI smoke test asserts specific output paths; changing template paths usually means updating `.github/workflows/scaffold.yml`.
+- `templates/` — render functions that emit every file in the generated project (`project.ts` is the entry, plus `shell.ts`, `titlebar.ts`, `dmg.ts`, `release.ts`). The CI smoke test asserts specific output paths; changing template paths usually means updating `.github/workflows/scaffold-smoke.yml`.
 - `metadata.ts` / `icons.ts` — fetch site title/description/theme color/icons via `cheerio` + `@resvg/resvg-js` + `png-to-ico` + `icojs`; always provide a fallback path (`createFallbackSiteMetadata`).
 - `recipes.ts` — curated app catalog used by `appbun create <slug>`, `appbun recipes`, `appbun discover`. Recipes are intentionally boring: stable public URLs, optional `themeColor`/`titlebar`/`width`/`height`/aliases/`concepts`.
 - `doctor.ts` (env: bun, node, Xcode, codesign, etc., per `--target`) vs `project-doctor.ts` (validates an already-generated project). `--project` flips to the latter; both can emit JSON for agents.
