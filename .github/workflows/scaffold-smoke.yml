@@ -26,3 +26,6 @@ jobs:
       - run: grep -q APPLE_NOTARIZE ./tmp/example/scripts/create-dmg.mjs
       - run: grep -q shell-status ./tmp/example/src/mainview/index.html
       - run: grep -q appbun.generated.json ./tmp/example/README.md
+      - run: grep -q 'ApplicationMenu.setApplicationMenu' ./tmp/example/src/bun/index.ts
+      - run: grep -q 'process.platform === "darwin"' ./tmp/example/src/bun/index.ts
+      - run: grep -q 'role: "copy"' ./tmp/example/src/bun/index.ts
