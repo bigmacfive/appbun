@@ -270,6 +270,7 @@ describe("generator", () => {
     const manifest = files.find((file) => file.path === "appbun.generated.json")?.content ?? "";
     expect(manifest).toContain('"generator"');
     expect(manifest).toContain(`"version": "${getAppbunVersion()}"`);
+    expect(files.find((file) => file.path === "tsconfig.json")?.content).toContain('"esModuleInterop": true');
   });
 
   test("system titlebar preset falls back to native chrome", () => {

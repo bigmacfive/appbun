@@ -150,6 +150,7 @@ function generatedTsconfig(): string {
     '    "module": "ESNext",',
     '    "moduleResolution": "Bundler",',
     '    "strict": true,',
+    '    "esModuleInterop": true,',
     '    "types": ["bun"]',
     "  }",
     "}",
