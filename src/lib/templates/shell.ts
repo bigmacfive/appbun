@@ -115,7 +115,7 @@ export function generatedMainviewCss(config: ResolvedAppConfig): string {
   return `:root {
   color-scheme: light;
   --shell-ink: rgba(22, 22, 24, 0.92);
-  --shell-muted: rgba(55, 65, 81, 0.72);
+  --shell-muted: rgba(55, 65, 81, 0.82);
   --shell-border: rgba(15, 23, 42, 0.10);
   --shell-toolbar: rgba(248, 248, 250, 0.84);
   --shell-toolbar-height: ${preset.toolbarHeight}px;
@@ -159,6 +159,20 @@ body {
   border-bottom: calc(1px * var(--shell-toolbar-border-alpha)) solid var(--shell-border);
   backdrop-filter: blur(24px) saturate(1.15);
   z-index: 2;
+}
+
+.topbar::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  width: max(54px, calc(var(--shell-toolbar-left) - 18px));
+  height: calc(var(--shell-toolbar-height) - 12px);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.42) inset;
+  pointer-events: none;
 }
 
 .topbar-brand,
@@ -221,7 +235,7 @@ body {
   display: inline-grid;
   place-items: center;
   padding: 0;
-  color: var(--shell-muted);
+  color: rgba(55, 65, 81, 0.92);
   background: transparent;
   font: 15px/1 "SF Pro Text", "Segoe UI", sans-serif;
   cursor: default;
@@ -317,8 +331,10 @@ electrobun-webview {
 function toolbarIcon(name: "reload" | "external"): string {
   if (name === "reload") {
     return `<svg class="icon icon-reload electrobun-webkit-app-region-no-drag" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M20 6v5h-5" />
-            <path d="M19.1 13.2A7.5 7.5 0 1 1 16.6 5.4L20 8.7" />
+            <path d="M20 8a8 8 0 0 0-13.7-3.7" />
+            <path d="M20 4v4h-4" />
+            <path d="M4 16a8 8 0 0 0 13.7 3.7" />
+            <path d="M4 20v-4h4" />
           </svg>`;
   }
 

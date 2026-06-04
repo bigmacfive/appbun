@@ -256,8 +256,11 @@ describe("generator", () => {
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("shell-status");
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("topbar-brand electrobun-webkit-app-region-no-drag");
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain("site-icon electrobun-webkit-app-region-no-drag");
+    expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain('<svg class="icon icon-reload electrobun-webkit-app-region-no-drag"');
     expect(files.find((file) => file.path === "src/mainview/index.html")?.content).toContain('<svg class="icon icon-external electrobun-webkit-app-region-no-drag"');
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("--shell-toolbar-height: 40px");
+    expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain(".topbar::before");
+    expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("pointer-events: none");
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("-webkit-app-region: no-drag");
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).toContain("vector-effect: non-scaling-stroke");
     expect(files.find((file) => file.path === "src/mainview/index.css")?.content).not.toContain(".icon-external::before");
