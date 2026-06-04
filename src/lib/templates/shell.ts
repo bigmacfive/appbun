@@ -70,12 +70,12 @@ export function generatedMainviewHtml(config: ResolvedAppConfig): string {
   const toolbar = preset.showCustomToolbar
     ? `
     <header class="topbar electrobun-webkit-app-region-drag" data-titlebar-style="${preset.id}">
-      <div class="topbar-brand">
-        <img id="site-icon" class="site-icon" src="views://mainview/icon.png" alt="" />
-        <strong id="site-name">${escapeHtml(config.name)}</strong>
+      <div class="topbar-brand electrobun-webkit-app-region-no-drag">
+        <img id="site-icon" class="site-icon electrobun-webkit-app-region-no-drag" src="views://mainview/icon.png" alt="" />
+        <strong id="site-name" class="electrobun-webkit-app-region-no-drag">${escapeHtml(config.name)}</strong>
       </div>
       <div class="topbar-actions electrobun-webkit-app-region-no-drag" aria-label="App controls">
-        <span id="site-origin" class="site-origin">${escapeHtml(new URL(config.url).hostname)}</span>
+        <span id="site-origin" class="site-origin electrobun-webkit-app-region-no-drag">${escapeHtml(new URL(config.url).hostname)}</span>
         <button id="reload-app" class="icon-button" type="button" title="Reload" aria-label="Reload">
           ${toolbarIcon("reload")}
         </button>
@@ -171,6 +171,16 @@ body {
 
 .topbar-actions {
   flex: 0 1 auto;
+}
+
+.topbar-brand,
+.topbar-actions,
+.site-icon,
+#site-name,
+.site-origin,
+.icon-button,
+.icon {
+  -webkit-app-region: no-drag;
 }
 
 .site-icon {
@@ -306,13 +316,13 @@ electrobun-webview {
 
 function toolbarIcon(name: "reload" | "external"): string {
   if (name === "reload") {
-    return `<svg class="icon icon-reload" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    return `<svg class="icon icon-reload electrobun-webkit-app-region-no-drag" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M20 6v5h-5" />
             <path d="M19.1 13.2A7.5 7.5 0 1 1 16.6 5.4L20 8.7" />
           </svg>`;
   }
 
-  return `<svg class="icon icon-external" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  return `<svg class="icon icon-external electrobun-webkit-app-region-no-drag" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M14 4h6v6" />
             <path d="M10 14 20 4" />
             <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
