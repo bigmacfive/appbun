@@ -305,10 +305,16 @@ This project includes \`.github/workflows/release.yml\`. Add \`APPLE_SIGN_IDENTI
 - Icon source: ${icons.sourceUrl ? `[${icons.sourceUrl}](${icons.sourceUrl})` : "not resolved"}
 - Generated manifest: \`appbun.generated.json\`
 
+## Passkeys And SSO
+
+Some passkey, WebAuthn, Sign in with Apple, and SSO flows require a real browser security context or a platform-associated domain. If sign-in stalls inside the embedded webview, use the toolbar button to open ${config.origin} in the default browser, finish authentication there, then return to the app.
+
+This is a limitation of arbitrary URL wrappers and embedded webviews, not your app code. Public passkey-first distribution may require a dedicated native app identifier, associated domains, signing, and site ownership.
+
 ## Files
 
 - \`appbun.generated.json\`: source URL, generator version, icon source, shell settings, and package manager
-- \`src/bun/index.ts\`: creates the Electrobun window and loads the local shell
+- \`src/bun/index.ts\`: creates the Electrobun window, loads the local shell, and opens external URLs in the default browser
 - \`src/mainview/\`: the shell toolbar, controls, and embedded webview
 - \`scripts/create-dmg.mjs\`: creates unsigned DMGs by default and signs the app when \`APPLE_SIGN_IDENTITY\` is set
 - \`.github/workflows/release.yml\`: builds release artifacts on macOS, Windows, and Linux GitHub-hosted runners
@@ -320,6 +326,7 @@ This project includes \`.github/workflows/release.yml\`. Add \`APPLE_SIGN_IDENTI
 - Keychain permission denied: unlock the keychain or allow \`codesign\` to use the certificate.
 - Notarization failed: confirm \`APPLE_ID\`, \`APPLE_TEAM_ID\`, and \`APPLE_APP_SPECIFIC_PASSWORD\`, then rerun on a macOS machine with Xcode tools.
 - \`create-dmg\` or \`hdiutil\` failed: rerun \`${installCommand}\`, confirm you are on macOS, and inspect the command output above the error.
+- Passkey or SSO does not complete: open the source URL in the default browser from the toolbar and finish authentication there.
 
 ## Notes
 

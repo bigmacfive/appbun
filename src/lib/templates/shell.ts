@@ -11,7 +11,7 @@ export function generatedBunEntry(config: ResolvedAppConfig): string {
         FullSizeContentView: true,
       }`
     : "{}";
-  return `import { BrowserWindow } from "electrobun/bun";
+  return `import { BrowserWindow, Utils } from "electrobun/bun";
 
 const isMac = process.platform === "darwin";
 
@@ -33,8 +33,35 @@ mainWindow.webview.on("dom-ready", () => {
   console.log(${JSON.stringify(`${config.name} shell loaded`)})
 });
 
+mainWindow.webview.on("new-window-open", (event: any) => {
+  const url = getExternalUrl(event);
+  if (!url || !/^https?:\\/\\//.test(url)) {
+    return;
+  }
+
+  event?.preventDefault?.();
+  const opened = Utils.openExternal(url);
+  if (!opened) {
+    console.warn("appbun could not open external URL", url);
+  }
+});
+
 console.log(${JSON.stringify(startMessage)});
 console.log(${JSON.stringify(descriptionMessage)});
+
+function getExternalUrl(event: any): string | undefined {
+  const detail = event?.detail ?? event?.data?.detail ?? event?.data;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (detail && typeof detail.url === "string") {
+    return detail.url;
+  }
+  if (typeof event?.url === "string") {
+    return event.url;
+  }
+  return undefined;
+}
 `;
 }
 
@@ -50,10 +77,10 @@ export function generatedMainviewHtml(config: ResolvedAppConfig): string {
       <div class="topbar-actions electrobun-webkit-app-region-no-drag" aria-label="App controls">
         <span id="site-origin" class="site-origin">${escapeHtml(new URL(config.url).hostname)}</span>
         <button id="reload-app" class="icon-button" type="button" title="Reload" aria-label="Reload">
-          <span class="icon icon-reload" aria-hidden="true"></span>
+          ${toolbarIcon("reload")}
         </button>
         <button id="open-external" class="icon-button" type="button" title="Open in browser" aria-label="Open in browser">
-          <span class="icon icon-external" aria-hidden="true"></span>
+          ${toolbarIcon("external")}
         </button>
       </div>
     </header>`
@@ -196,56 +223,16 @@ body {
 }
 
 .icon {
-  position: relative;
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   display: block;
-}
-
-.icon-reload {
-  border: 1.7px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 999px;
-}
-
-.icon-reload::after {
-  content: "";
-  position: absolute;
-  top: -2px;
-  right: -1px;
-  width: 4px;
-  height: 4px;
-  border-top: 1.7px solid currentColor;
-  border-right: 1.7px solid currentColor;
-  transform: rotate(20deg);
-}
-
-.icon-external {
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
-}
-
-.icon-external::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 7px;
-  height: 7px;
-  border-top: 1.7px solid currentColor;
-  border-right: 1.7px solid currentColor;
-}
-
-.icon-external::after {
-  content: "";
-  position: absolute;
-  top: 1px;
-  right: -1px;
-  width: 8px;
-  height: 1.7px;
-  background: currentColor;
-  transform: rotate(-45deg);
-  transform-origin: right center;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .stage {
@@ -315,6 +302,21 @@ electrobun-webview {
   }
 }
 `;
+}
+
+function toolbarIcon(name: "reload" | "external"): string {
+  if (name === "reload") {
+    return `<svg class="icon icon-reload" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 6v5h-5" />
+            <path d="M19.1 13.2A7.5 7.5 0 1 1 16.6 5.4L20 8.7" />
+          </svg>`;
+  }
+
+  return `<svg class="icon icon-external" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M14 4h6v6" />
+            <path d="M10 14 20 4" />
+            <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
+          </svg>`;
 }
 
 export function generatedMainviewEntry(config: ResolvedAppConfig, icons: PreparedIconAssets): string {
