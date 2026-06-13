@@ -1,0 +1,57 @@
+name: Build a desktop app
+description: Request a ready-to-download macOS app built from a website. No local setup needed.
+title: "build: "
+labels:
+  - build-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill this in and submit. A maintainer will apply the `build-request` label, and a GitHub Action
+        builds an **unsigned macOS `.dmg`** and posts a download link back in this issue.
+
+        The download is community-built and unsigned: on first launch macOS may block it. Open
+        **System Settings → Privacy & Security → Open Anyway** to run it.
+  - type: input
+    id: url
+    attributes:
+      label: App URL
+      description: The website to wrap. Must start with http:// or https://
+      placeholder: https://example.com
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: App name
+      placeholder: Example
+    validations:
+      required: true
+  - type: dropdown
+    id: titlebar
+    attributes:
+      label: Titlebar style
+      options:
+        - system
+        - unified
+        - compact
+        - minimal
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: theme_color
+    attributes:
+      label: Theme color (optional)
+      description: Hex color like #2563eb. Leave blank to auto-detect.
+      placeholder: "#2563eb"
+  - type: input
+    id: width
+    attributes:
+      label: Window width (optional)
+      placeholder: "1280"
+  - type: input
+    id: height
+    attributes:
+      label: Window height (optional)
+      placeholder: "800"
