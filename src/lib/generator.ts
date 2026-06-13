@@ -100,11 +100,15 @@ export function findLatestDmg(config: ResolvedAppConfig): string | undefined {
 }
 
 export function openFile(targetPath: string): void {
-  const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-  const args = process.platform === "win32" ? [targetPath] : [targetPath];
+  const isWindows = process.platform === "win32";
+  const command = process.platform === "darwin" ? "open" : isWindows ? "start" : "xdg-open";
+  // The Windows `start` builtin treats the first quoted argument as the window
+  // title, so pass an empty title before the path; otherwise a path containing
+  // spaces opens a console window titled with the path instead of the file.
+  const args = isWindows ? ["", targetPath] : [targetPath];
   const result = spawnSync(command, args, {
     stdio: "inherit",
-    shell: process.platform === "win32",
+    shell: isWindows,
   });
 
   if (result.status !== 0) {

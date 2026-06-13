@@ -8,6 +8,9 @@ import pngToIco from "png-to-ico";
 
 import type { IconCandidate, IconFormat, PreparedIconAssets, SiteMetadata } from "./types.js";
 import { deriveThemeColor, getInitials, normalizeHexColor, shiftHexColor } from "./utils.js";
+import { getAppbunVersion } from "./version.js";
+
+const ICON_FETCH_TIMEOUT_MS = 8000;
 
 const ICONSET_SPECS = [
   { file: "icon_16x16.png", size: 16 },
@@ -223,9 +226,10 @@ async function fetchIconAsset(url: string): Promise<FetchedIconAsset> {
   }
 
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(ICON_FETCH_TIMEOUT_MS),
     headers: {
       accept: "image/*,*/*;q=0.8",
-      "user-agent": "appbun/0.1.0"
+      "user-agent": `appbun/${getAppbunVersion()}`
     }
   });
   if (!response.ok) {

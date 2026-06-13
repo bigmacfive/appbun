@@ -2,17 +2,21 @@ import * as cheerio from "cheerio";
 
 import type { IconCandidate, IconFormat, SiteMetadata } from "./types.js";
 import { deriveNameFromUrl, normalizeHexColor } from "./utils.js";
+import { getAppbunVersion } from "./version.js";
+
+const FETCH_TIMEOUT_MS = 8000;
 
 const USER_AGENT = [
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
   "AppleWebKit/537.36 (KHTML, like Gecko)",
   "Chrome/133.0.0.0 Safari/537.36",
-  "appbun/0.6.0 (+https://github.com/bigmacfive/appbun)"
+  `appbun/${getAppbunVersion()} (+https://github.com/bigmacfive/appbun)`
 ].join(" ");
 
 export async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
   const url = new URL(rawUrl).toString();
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     headers: {
       "user-agent": USER_AGENT,
       accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -113,6 +117,7 @@ async function collectManifestIcons($: cheerio.CheerioAPI, baseUrl: string): Pro
   try {
     const manifestUrl = resolveUrl(baseUrl, href);
     const response = await fetch(manifestUrl, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       headers: {
         "user-agent": USER_AGENT,
         accept: "application/manifest+json,application/json"
