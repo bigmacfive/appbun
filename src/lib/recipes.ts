@@ -9,6 +9,13 @@ export interface AppRecipe {
   height?: number;
   aliases?: string[];
   concepts: string[];
+  /**
+   * When true, this app is safe to pre-build and redistribute as a downloadable
+   * binary in the gallery (open-source / tool sites with low trademark + ToS
+   * exposure). Trademarked or auth-gated apps are left to the on-demand builder
+   * and only show their `npx appbun <slug>` command in the gallery.
+   */
+  prebuild?: boolean;
 }
 
 export const appRecipes: AppRecipe[] = [
@@ -167,6 +174,7 @@ export const appRecipes: AppRecipe[] = [
     themeColor: "#4f46e5",
     titlebar: "compact",
     concepts: ["design", "whiteboard", "collaboration"],
+    prebuild: true,
   },
   {
     slug: "photopea",
@@ -177,6 +185,7 @@ export const appRecipes: AppRecipe[] = [
     width: 1600,
     height: 1000,
     concepts: ["design", "image-editor", "creative"],
+    prebuild: true,
   },
   {
     slug: "squoosh",
@@ -186,6 +195,7 @@ export const appRecipes: AppRecipe[] = [
     themeColor: "#ea580c",
     titlebar: "minimal",
     concepts: ["image", "compression", "developer", "creative"],
+    prebuild: true,
   },
   {
     slug: "desmos",
@@ -194,6 +204,7 @@ export const appRecipes: AppRecipe[] = [
     description: "Graphing calculator",
     themeColor: "#16a34a",
     concepts: ["math", "education", "learning"],
+    prebuild: true,
   },
 ];
 

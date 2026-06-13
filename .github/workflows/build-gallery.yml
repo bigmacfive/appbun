@@ -1,0 +1,103 @@
+name: Build app gallery
+
+# Builds downloadable macOS DMGs for the pre-build-safe recipes (open-source / tool sites)
+# and publishes them to a single rolling Release tagged `apps`, so every gallery app has a
+# permanent, login-free download URL:
+#   https://github.com/<owner>/<repo>/releases/download/apps/<slug>-<arch>.dmg
+#
+# Trademarked / auth-gated apps are intentionally NOT pre-built here; the gallery shows their
+# `npx appbun <slug>` command and routes them to the on-demand builder instead.
+
+on:
+  workflow_dispatch:
+  # Monthly refresh to pick up appbun / Electrobun updates. Uncomment to enable.
+  # schedule:
+  #   - cron: "0 6 1 * *"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: build-gallery
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.recipes.outputs.matrix }}
+    steps:
+      - id: recipes
+        # Pull the recipe list straight from the published CLI and keep only prebuild-safe apps.
+        run: |
+          set -euo pipefail
+          npx -y appbun@latest recipes --json > recipes.json
+          MATRIX=$(node -e '
+            const r = require("./recipes.json").filter((x) => x.prebuild);
+            const arches = [{ arch: "arm64", os: "macos-14" }, { arch: "x64", os: "macos-13" }];
+            const include = [];
+            for (const app of r) for (const a of arches) include.push({ slug: app.slug, name: app.name, arch: a.arch, os: a.os });
+            process.stdout.write(JSON.stringify({ include }));
+          ')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "$MATRIX"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build ${{ matrix.slug }} (${{ matrix.arch }})
+        env:
+          SLUG: ${{ matrix.slug }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          npx -y appbun@latest create "$SLUG" --out-dir "./_build-$SLUG" --yes --quiet
+          npx -y appbun@latest package --cwd "./_build-$SLUG" --dmg
+          SRC=$(ls "_build-$SLUG"/build/dmg/*.dmg | head -n1)
+          mkdir -p dist
+          cp "$SRC" "dist/$SLUG-$ARCH.dmg"
+      - name: Publish to gallery release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLUG: ${{ matrix.slug }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          gh release create apps --title "appbun app gallery" \
+            --notes "Pre-built, unsigned macOS apps. Rolling release — assets are replaced on each gallery build." \
+            2>/dev/null || true
+          gh release upload apps "dist/$SLUG-$ARCH.dmg" --clobber
+
+  pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.4
+      - run: bun install
+      - name: Generate gallery page
+        env:
+          GALLERY_OWNER_REPO: ${{ github.repository }}
+        run: bun run scripts/build-gallery-page.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./gallery-dist
+      - id: deploy
+        uses: actions/deploy-pages@v4
