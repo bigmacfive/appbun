@@ -29,6 +29,18 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 | Prepare signed distribution | `appbun package --dmg --sign` | Requires `APPLE_SIGN_IDENTITY` |
 | Prepare notarized distribution | `appbun package --notarize` | Uses Apple notary env vars |
 | Let an agent do it | `appbun skill --install-claude --cwd .` | Claude Code guide in your repo |
+| Drive it from any AI agent | `appbun mcp` | MCP server exposing create/recipes/discover |
+| Feature it in your README | `appbun badge <url>` | "Get the desktop app" markdown badge |
+
+## No Local Setup? Three Ways In
+
+Not every user wants a terminal. appbun meets people where they are:
+
+- **🖼️ Browse the gallery** — pre-built, downloadable macOS apps for open tools (Excalidraw, Photopea, Squoosh, Desmos). See [the app gallery](https://bigmacfive.github.io/appbun/).
+- **🤖 Request an online build** — open a [Build a desktop app](https://github.com/bigmacfive/appbun/issues/new?template=build-app.yml) issue with a URL; a GitHub Action builds the `.dmg` and posts a download link. No local install.
+- **⌨️ One command** — `npx -y appbun@latest <url> --name "My App" --dmg`.
+
+Downloads from the gallery and online builder are **unsigned**: on first launch, open **System Settings → Privacy & Security → Open Anyway**.
 
 ## The 60 Second Path
 
@@ -81,6 +93,20 @@ npx -y appbun@latest chatgpt --dmg
 ```
 
 `appbun` prefers Bun when it is available. If Bun is missing, it can fall back to npm unless you force `--package-manager`.
+
+## Use It From an AI Agent (MCP)
+
+`appbun` ships a Model Context Protocol server so any MCP-capable client (Claude Desktop, Cursor, Codex, …) can scaffold desktop apps directly. Add it to your client config:
+
+```json
+{
+  "mcpServers": {
+    "appbun": { "command": "npx", "args": ["-y", "appbun@latest", "mcp"] }
+  }
+}
+```
+
+It exposes three tools: `appbun_create` (scaffold a project from a URL or recipe), `appbun_recipes` (list built-in apps), and `appbun_discover` (search by concept). Prefer a self-contained guide instead? `appbun skill --install-claude --cwd .` drops a `CLAUDE.md` into your repo.
 
 ## Core Commands
 

@@ -1,0 +1,48 @@
+name: Request a built-in app recipe
+description: Suggest a popular web app to add to appbun's built-in recipes and gallery.
+title: "recipe: "
+labels:
+  - recipe-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Recipes power `npx appbun <slug>` and the app gallery. Good candidates are popular,
+        have a stable public URL, and work well in a desktop window.
+  - type: input
+    id: name
+    attributes:
+      label: App name
+      placeholder: Linear
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: App URL
+      placeholder: https://linear.app/
+    validations:
+      required: true
+  - type: input
+    id: slug
+    attributes:
+      label: Suggested slug
+      description: Lowercase, hyphenated. Used as "npx appbun <slug>".
+      placeholder: linear
+  - type: input
+    id: concepts
+    attributes:
+      label: Concepts
+      description: Comma-separated tags for discovery (e.g. productivity, work, project-management).
+      placeholder: productivity, work
+  - type: dropdown
+    id: open_source
+    attributes:
+      label: Is it open-source or a permissively-wrapped tool?
+      description: Open-source / tool sites can be pre-built and offered as gallery downloads.
+      options:
+        - "No / not sure"
+        - "Yes"
+      default: 0
+    validations:
+      required: true

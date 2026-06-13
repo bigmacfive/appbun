@@ -29,6 +29,18 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 | 서명 배포 준비 | `appbun package --dmg --sign` | `APPLE_SIGN_IDENTITY` 필요 |
 | 노터라이즈 배포 준비 | `appbun package --notarize` | Apple notary 환경변수 사용 |
 | 에이전트에게 맡기기 | `appbun skill --install-claude --cwd .` | Claude Code용 가이드 설치 |
+| 모든 AI 에이전트에서 구동 | `appbun mcp` | create/recipes/discover를 노출하는 MCP 서버 |
+| README에 배지 넣기 | `appbun badge <url>` | "Get the desktop app" 마크다운 배지 |
+
+## 로컬 설치 없이 쓰는 세 가지 방법
+
+터미널이 부담스러운 사용자를 위해:
+
+- **🖼️ 갤러리 둘러보기** — 오픈 툴(Excalidraw, Photopea, Squoosh, Desmos)용 사전 빌드 macOS 앱을 바로 다운로드. [앱 갤러리](https://bigmacfive.github.io/appbun/) 참고.
+- **🤖 온라인 빌드 요청** — URL을 담아 [Build a desktop app](https://github.com/bigmacfive/appbun/issues/new?template=build-app.yml) 이슈를 열면 GitHub Action이 `.dmg`를 만들어 다운로드 링크를 댓글로 남깁니다. 로컬 설치 불필요.
+- **⌨️ 한 줄 명령** — `npx -y appbun@latest <url> --name "My App" --dmg`.
+
+갤러리/온라인 빌더의 다운로드는 **미서명**입니다. 첫 실행 시 **시스템 설정 → 개인정보 보호 및 보안 → 확인 없이 열기**를 사용하세요.
 
 ## 60초 경로
 
@@ -81,6 +93,20 @@ npx -y appbun@latest chatgpt --dmg
 ```
 
 `appbun`은 Bun이 있으면 Bun을 우선 사용합니다. Bun이 없으면 `--package-manager`로 강제하지 않는 한 npm으로 폴백할 수 있습니다.
+
+## AI 에이전트에서 사용 (MCP)
+
+`appbun`은 Model Context Protocol 서버를 내장해, MCP를 지원하는 클라이언트(Claude Desktop, Cursor, Codex 등)에서 데스크톱 앱을 바로 스캐폴드할 수 있습니다. 클라이언트 설정에 추가하세요:
+
+```json
+{
+  "mcpServers": {
+    "appbun": { "command": "npx", "args": ["-y", "appbun@latest", "mcp"] }
+  }
+}
+```
+
+세 가지 툴을 노출합니다: `appbun_create`(URL/레시피로 프로젝트 생성), `appbun_recipes`(내장 앱 목록), `appbun_discover`(개념 검색). 자체 가이드를 선호하면 `appbun skill --install-claude --cwd .`로 저장소에 `CLAUDE.md`를 추가하세요.
 
 ## 핵심 명령
 

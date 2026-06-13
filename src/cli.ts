@@ -525,6 +525,83 @@ Examples:
     }
   });
 
+program
+  .command("badge")
+  .argument("<target>", "web app URL or built-in recipe slug to feature")
+  .description('Print a "Get the desktop app" markdown badge that links to the online builder.')
+  .option("-n, --name <name>", "app display name shown on the badge")
+  .option("--repo <owner/repo>", "appbun builder repository", "bigmacfive/appbun")
+  .option("--copy", "copy the badge markdown to the clipboard when supported")
+  .addHelpText(
+    "after",
+    `
+
+Examples:
+  $ appbun badge https://example.com --name "Example"
+  $ appbun badge linear --copy
+`,
+  )
+  .action((target: string, options: { name?: string; repo: string; copy?: boolean }) => {
+    try {
+      let url = target;
+      let name = options.name;
+      if (!looksLikeUrl(target)) {
+        const recipe = findAppRecipe(target);
+        if (!recipe) {
+          throw new Error(`Unknown recipe or URL: ${target}. Pass a full https:// URL or a known recipe slug.`);
+        }
+        url = recipe.url;
+        name = name ?? recipe.name;
+      }
+      name = (name ?? new URL(url).hostname.replace(/^www\./, "")).trim();
+
+      const builderUrl = `https://github.com/${options.repo}/issues/new?template=build-app.yml&url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+      const badge = `[![Get the ${name} desktop app](https://img.shields.io/badge/appbun-Get%20the%20desktop%20app-2563eb?logo=apple&logoColor=white)](${builderUrl})`;
+
+      if (options.copy) {
+        copyToClipboard(badge);
+        console.log(pc.bold(pc.green("copied")), "badge markdown copied to clipboard");
+        console.log("");
+      }
+      console.log(badge);
+      console.log("");
+      console.log(pc.dim("Or build it yourself:"));
+      console.log(`  npx -y appbun@latest ${looksLikeUrl(target) ? `${url} --name "${name}"` : target} --dmg`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(pc.bold(pc.red("error")), message);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("mcp")
+  .description("Run appbun as a Model Context Protocol (MCP) server over stdio for AI agents.")
+  .addHelpText(
+    "after",
+    `
+
+Exposes the tools appbun_create, appbun_recipes, and appbun_discover.
+
+Add to an MCP client (e.g. Claude Desktop) config:
+  {
+    "mcpServers": {
+      "appbun": { "command": "npx", "args": ["-y", "appbun@latest", "mcp"] }
+    }
+  }
+`,
+  )
+  .action(async () => {
+    try {
+      const { runMcpServer } = await import("./lib/mcp.js");
+      await runMcpServer();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(pc.bold(pc.red("error")), message);
+      process.exitCode = 1;
+    }
+  });
+
 program.addHelpText(
   "after",
   `
@@ -537,6 +614,8 @@ Commands:
   package  Build or package a generated appbun project.
   dev      Detect a local web app and scaffold it.
   skill    Show or install the bundled Codex skill.
+  badge    Print a "Get the desktop app" markdown badge.
+  mcp      Run appbun as an MCP server for AI agents.
 
 Run "appbun <command> --help" to see examples and titlebar presets.
 `,
