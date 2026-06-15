@@ -8,7 +8,7 @@
 [![Last commit](https://img.shields.io/github/last-commit/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/commits/main)
 [![License](https://img.shields.io/github/license/bigmacfive/appbun)](./LICENSE)
 
-웹사이트, localhost 앱, SaaS 대시보드를 실제 데스크톱 앱 프로젝트로 바꿉니다.
+어떤 웹앱이든 읽고 고칠 수 있는 데스크톱 앱과 DMG로 바꿉니다. 블랙박스 wrapper가 아닙니다.
 
 ```bash
 npx -y appbun@latest https://github.com --name "GitHub" --dmg
@@ -17,6 +17,23 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 `appbun`은 정체를 알 수 없는 바이너리 하나를 던져주지 않습니다. 읽고 고칠 수 있는 [Electrobun](https://electrobun.dev) 프로젝트, 아이콘, native-runner 빌드 스크립트, macOS DMG 패키징, 에이전트용 지침까지 함께 만들어줍니다.
 
 ![appbun terminal demo](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/terminal-demo.gif)
+
+## Codex 또는 Claude Code에 바로 주기
+
+Codex는 localhost 앱을 DMG까지 만들 수 있습니다:
+
+```text
+Use appbun to package my running web app at http://localhost:3000 as an inspectable desktop app.
+Create it in ./desktop/my-app, run the generated project doctor, install dependencies, and build a macOS DMG if this machine supports it.
+```
+
+에이전트가 더 자연스럽게 appbun을 쓰게 하려면:
+
+```bash
+npx -y appbun@latest skill --install
+npx -y appbun@latest skill --install-claude --cwd .
+npx -y appbun@latest mcp
+```
 
 ## 무엇을 얻나
 
@@ -31,6 +48,7 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 | 에이전트에게 맡기기 | `appbun skill --install-claude --cwd .` | Claude Code용 가이드 설치 |
 | 모든 AI 에이전트에서 구동 | `appbun mcp` | create/recipes/discover를 노출하는 MCP 서버 |
 | README에 배지 넣기 | `appbun badge <url>` | "Get the desktop app" 마크다운 배지 |
+| 공유 카드 만들기 | `appbun showcase chatgpt` | README, Release, SNS용 마크다운 preview |
 
 ## 로컬 설치 없이 쓰는 세 가지 방법
 
@@ -38,6 +56,7 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 
 - **🖼️ 갤러리 둘러보기** — 오픈 툴(Excalidraw, Photopea, Squoosh, Desmos)용 사전 빌드 macOS 앱을 바로 다운로드. [앱 갤러리](https://bigmacfive.github.io/appbun/) 참고.
 - **🤖 온라인 빌드 요청** — URL을 담아 [Build a desktop app](https://github.com/bigmacfive/appbun/issues/new?template=build-app.yml) 이슈를 열면 GitHub Action이 `.dmg`를 만들어 다운로드 링크를 댓글로 남깁니다. 로컬 설치 불필요.
+- **📣 만든 앱 공유** — [I built an app with appbun](https://github.com/bigmacfive/appbun/issues/new?template=submit-app.yml) 이슈를 열면 갤러리 workflow가 community card PR을 만듭니다.
 - **⌨️ 한 줄 명령** — `npx -y appbun@latest <url> --name "My App" --dmg`.
 
 갤러리/온라인 빌더의 다운로드는 **미서명**입니다. 첫 실행 시 **시스템 설정 → 개인정보 보호 및 보안 → 확인 없이 열기**를 사용하세요.
@@ -148,6 +167,15 @@ appbun package --dmg
 appbun package --dmg --sign
 appbun package --notarize
 ```
+
+### 공유
+
+```bash
+appbun badge https://example.com --name "Example"
+appbun showcase chatgpt
+```
+
+생성된 README에는 **Built with appbun** 배지와 이 앱을 다시 만드는 명령이 자동으로 들어갑니다. 짧은 배지는 `appbun badge <url>`, 이미지와 명령이 포함된 공유 카드는 `appbun showcase <recipe|url>`을 쓰면 됩니다.
 
 ## macOS DMG, 서명, 노터라이즈
 

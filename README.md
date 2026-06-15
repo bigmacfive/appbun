@@ -8,7 +8,7 @@
 [![Last commit](https://img.shields.io/github/last-commit/bigmacfive/appbun)](https://github.com/bigmacfive/appbun/commits/main)
 [![License](https://img.shields.io/github/license/bigmacfive/appbun)](./LICENSE)
 
-Turn a website, localhost app, or SaaS dashboard into a real desktop app project.
+Turn any web app into an inspectable desktop app and DMG. No black box wrapper.
 
 ```bash
 npx -y appbun@latest https://github.com --name "GitHub" --dmg
@@ -17,6 +17,23 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 `appbun` does not give you a mystery binary. It generates an inspectable [Electrobun](https://electrobun.dev) project with source code, icons, native-runner build scripts, macOS DMG packaging, and agent-friendly instructions.
 
 ![appbun terminal demo](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/terminal-demo.gif)
+
+## Give This To Codex Or Claude Code
+
+Codex can turn your localhost app into a DMG:
+
+```text
+Use appbun to package my running web app at http://localhost:3000 as an inspectable desktop app.
+Create it in ./desktop/my-app, run the generated project doctor, install dependencies, and build a macOS DMG if this machine supports it.
+```
+
+Want the agent to use native tools instead of guessing?
+
+```bash
+npx -y appbun@latest skill --install
+npx -y appbun@latest skill --install-claude --cwd .
+npx -y appbun@latest mcp
+```
 
 ## What You Get
 
@@ -31,6 +48,7 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 | Let an agent do it | `appbun skill --install-claude --cwd .` | Claude Code guide in your repo |
 | Drive it from any AI agent | `appbun mcp` | MCP server exposing create/recipes/discover |
 | Feature it in your README | `appbun badge <url>` | "Get the desktop app" markdown badge |
+| Make a share card | `appbun showcase chatgpt` | Markdown preview for README, releases, and socials |
 
 ## No Local Setup? Three Ways In
 
@@ -38,6 +56,7 @@ Not every user wants a terminal. appbun meets people where they are:
 
 - **🖼️ Browse the gallery** — pre-built, downloadable macOS apps for open tools (Excalidraw, Photopea, Squoosh, Desmos). See [the app gallery](https://bigmacfive.github.io/appbun/).
 - **🤖 Request an online build** — open a [Build a desktop app](https://github.com/bigmacfive/appbun/issues/new?template=build-app.yml) issue with a URL; a GitHub Action builds the `.dmg` and posts a download link. No local install.
+- **📣 Share what you built** — open an [I built an app with appbun](https://github.com/bigmacfive/appbun/issues/new?template=submit-app.yml) issue and the gallery workflow opens a community-card PR.
 - **⌨️ One command** — `npx -y appbun@latest <url> --name "My App" --dmg`.
 
 Downloads from the gallery and online builder are **unsigned**: on first launch, open **System Settings → Privacy & Security → Open Anyway**.
@@ -148,6 +167,15 @@ appbun package --dmg
 appbun package --dmg --sign
 appbun package --notarize
 ```
+
+### Share
+
+```bash
+appbun badge https://example.com --name "Example"
+appbun showcase chatgpt
+```
+
+Every generated README includes a **Built with appbun** badge and the exact command to rebuild that app. Use `appbun badge <url>` when you want a compact "Build this app" link, or `appbun showcase <recipe|url>` when you want a richer card with a screenshot, command, and online-builder link.
 
 ## macOS DMG, Signing, Notarization
 
@@ -271,6 +299,16 @@ Public no-login targets captured with Playwright:
 | Squoosh | `appbun https://squoosh.app --name "Squoosh" --dmg` |
 
 More examples: [docs/showcase/README.md](docs/showcase/README.md)
+
+## Submit Your App To The Gallery
+
+Built something useful with appbun?
+
+1. Run `appbun showcase <url-or-recipe>` and use the output in your repo or release notes.
+2. Open the [I built an app with appbun](https://github.com/bigmacfive/appbun/issues/new?template=submit-app.yml) form.
+3. Add the app URL, source repo or writeup, and build command.
+
+The community gallery workflow turns accepted submissions into a PR that updates `docs/showcase/community-builds.json`, then the gallery page renders it under **Community builds**.
 
 ## Troubleshooting
 

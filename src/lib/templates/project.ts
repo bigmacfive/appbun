@@ -230,10 +230,29 @@ function generatedReadme(config: ResolvedAppConfig, icons: PreparedIconAssets): 
   const windowsCommand = config.packageManager === "bun" ? "bun run build:windows" : "npm run build:windows";
   const linuxCommand = config.packageManager === "bun" ? "bun run build:linux" : "npm run build:linux";
   const allCommand = config.packageManager === "bun" ? "bun run build:all" : "npm run build:all";
+  const builderUrl = `https://github.com/bigmacfive/appbun/issues/new?template=build-app.yml&url=${encodeURIComponent(config.url)}&name=${encodeURIComponent(config.name)}`;
+  const recreateTarget = config.url.startsWith("http://localhost") || config.url.startsWith("https://localhost")
+    ? `${config.url} --name ${JSON.stringify(config.name)}`
+    : `${config.url} --name ${JSON.stringify(config.name)}`;
 
   return `# ${config.name}
 
+[![Built with appbun](https://img.shields.io/badge/Built%20with-appbun-111111?logo=apple&logoColor=white)](https://github.com/bigmacfive/appbun)
+[![Build this app](https://img.shields.io/badge/appbun-Build%20this%20app-111111?logo=github&logoColor=white)](${builderUrl})
+
 Generated with [appbun](https://github.com/bigmacfive/appbun). This is an inspectable Electrobun project that wraps ${config.url}.
+
+## Build This App Yourself
+
+\`\`\`bash
+npx -y appbun@latest ${recreateTarget} --dmg
+\`\`\`
+
+Want the badge for your own README?
+
+\`\`\`bash
+npx -y appbun@latest badge ${config.url} --name ${JSON.stringify(config.name)}
+\`\`\`
 
 ## Run Locally
 

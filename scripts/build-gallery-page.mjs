@@ -7,7 +7,7 @@
 // Run with bun (it imports the TypeScript recipe module directly):
 //   bun run scripts/build-gallery-page.mjs
 
-import { cp, mkdir, readdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +18,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const outDir = resolve(root, "gallery-dist");
 const screenshotsSrc = resolve(root, "docs", "screenshots");
+const communityBuildsPath = resolve(root, "docs", "showcase", "community-builds.json");
 
 const ownerRepo = process.env.GALLERY_OWNER_REPO || "bigmacfive/appbun";
 const releaseBase = `https://github.com/${ownerRepo}/releases/download/apps`;
@@ -25,6 +26,10 @@ const issueFormUrl = `https://github.com/${ownerRepo}/issues/new?template=build-
 
 const escapeHtml = (value) =>
   String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+function buildIssueUrl({ url, name }) {
+  return `${issueFormUrl}&url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+}
 
 function cardHtml(recipe) {
   const hasShot = existsSync(resolve(screenshotsSrc, `${recipe.slug}.png`));
@@ -38,8 +43,9 @@ function cardHtml(recipe) {
     ? `<div class="downloads">
         <a class="btn primary" href="${releaseBase}/${recipe.slug}-arm64.dmg">Download · Apple Silicon</a>
         <a class="btn" href="${releaseBase}/${recipe.slug}-x64.dmg">Intel</a>
-      </div>`
-    : `<a class="btn" href="${issueFormUrl}" target="_blank" rel="noopener">Build your own .dmg →</a>`;
+      </div>
+      <a class="btn build" href="${buildIssueUrl(recipe)}" target="_blank" rel="noopener">Build this app</a>`
+    : `<a class="btn primary build" href="${buildIssueUrl(recipe)}" target="_blank" rel="noopener">Build this app</a>`;
 
   return `<article class="card">
     <div class="shot" style="--accent:${accent}">${media}</div>
@@ -52,7 +58,27 @@ function cardHtml(recipe) {
   </article>`;
 }
 
-function pageHtml(recipes) {
+function communityCardHtml(build) {
+  const command = build.command || `npx appbun ${build.url} --name "${build.name}" --dmg`;
+  const builder = build.builder ? `Built by ${escapeHtml(build.builder)}` : "Community build";
+  const source = build.repository
+    ? `<a href="${escapeHtml(build.repository)}" target="_blank" rel="noopener">Source</a>`
+    : "";
+  return `<article class="community-card">
+    <div>
+      <strong>${escapeHtml(build.name)}</strong>
+      <span>${escapeHtml(builder)}</span>
+      <p>${escapeHtml(build.description || "An appbun desktop build shared by the community.")}</p>
+    </div>
+    <button class="cmd" data-copy="${escapeHtml(command)}" type="button"><code>${escapeHtml(command)}</code></button>
+    <div class="community-links">
+      <a class="btn primary" href="${buildIssueUrl(build)}" target="_blank" rel="noopener">Build this app</a>
+      ${source}
+    </div>
+  </article>`;
+}
+
+function pageHtml(recipes, communityBuilds) {
   const prebuilt = recipes.filter((r) => r.prebuild);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -84,9 +110,18 @@ function pageHtml(recipes) {
   .cmd { text-align:left; cursor:pointer; border:1px solid rgba(15,23,42,.12); background:#f1f5f9; border-radius:9px; padding:8px 10px; font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:#0f172a; }
   .cmd:hover { background:#e2e8f0; }
   .downloads { display:flex; gap:8px; }
+  .btn.build { margin-top:2px; }
   .btn { display:inline-block; text-decoration:none; text-align:center; border-radius:9px; padding:9px 12px; font-size:13px; font-weight:600; border:1px solid rgba(15,23,42,.14); color:#0f172a; background:#fff; }
   .btn.primary { background:#0f172a; color:#fff; border-color:#0f172a; flex:1; }
   .btn:hover { filter:brightness(.96); }
+  .community { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:16px; }
+  @media (max-width: 720px){ .community { grid-template-columns:1fr; } }
+  .community-card { border-radius:16px; border:1px solid rgba(15,23,42,.1); background:#fff; padding:18px; display:flex; flex-direction:column; gap:12px; box-shadow:0 12px 28px rgba(15,23,42,.06); }
+  .community-card strong { display:block; font-size:16px; }
+  .community-card span { color:#64748b; font-size:13px; }
+  .community-card p { margin:8px 0 0; color:#475569; font-size:13px; line-height:1.5; }
+  .community-links { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .community-links a:not(.btn) { color:#475569; font-size:13px; font-weight:600; }
   footer { margin-top:64px; font-size:12.5px; color:#64748b; line-height:1.6; }
   footer a { color:#475569; }
 </style>
@@ -107,6 +142,12 @@ function pageHtml(recipes) {
     <h2>Build with one command</h2>
     <div class="grid">
       ${recipes.filter((r) => !r.prebuild).map(cardHtml).join("\n")}
+    </div>
+
+    <h2>Community builds</h2>
+    <p class="note">Built something useful with appbun? <a href="https://github.com/${ownerRepo}/issues/new?template=submit-app.yml">Submit it to the gallery</a>.</p>
+    <div class="community">
+      ${communityBuilds.length > 0 ? communityBuilds.map(communityCardHtml).join("\n") : `<article class="community-card"><strong>Your app could be first</strong><span>Community build</span><p>Share a repo, screenshot, or URL and appbun can turn it into a gallery card.</p><a class="btn primary" href="https://github.com/${ownerRepo}/issues/new?template=submit-app.yml">Submit your app</a></article>`}
     </div>
 
     <footer>
@@ -134,10 +175,23 @@ async function main() {
       }
     }
   }
-  await writeFile(resolve(outDir, "index.html"), pageHtml(appRecipes), "utf8");
+  const communityBuilds = await readCommunityBuilds();
+  await writeFile(resolve(outDir, "index.html"), pageHtml(appRecipes, communityBuilds), "utf8");
   // .nojekyll keeps GitHub Pages from ignoring files; harmless and conventional.
   await writeFile(resolve(outDir, ".nojekyll"), "", "utf8");
   console.log(`Gallery written to ${outDir} (${appRecipes.length} apps, ${appRecipes.filter((r) => r.prebuild).length} pre-built)`);
+}
+
+async function readCommunityBuilds() {
+  if (!existsSync(communityBuildsPath)) {
+    return [];
+  }
+
+  const parsed = JSON.parse(await readFile(communityBuildsPath, "utf8"));
+  if (!Array.isArray(parsed)) {
+    throw new Error("docs/showcase/community-builds.json must contain an array");
+  }
+  return parsed;
 }
 
 main().catch((error) => {

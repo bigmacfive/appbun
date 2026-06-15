@@ -575,6 +575,80 @@ Examples:
   });
 
 program
+  .command("showcase")
+  .argument("<target>", "web app URL or built-in recipe slug to turn into a share card")
+  .description("Print a share-ready appbun preview card, badge, and build command.")
+  .option("-n, --name <name>", "app display name shown in the card")
+  .option("--repo <owner/repo>", "appbun builder repository", "bigmacfive/appbun")
+  .option("--copy", "copy the markdown card to the clipboard when supported")
+  .addHelpText(
+    "after",
+    `
+
+Examples:
+  $ appbun showcase chatgpt
+  $ appbun showcase https://example.com --name "Example"
+  $ appbun showcase linear --copy
+`,
+  )
+  .action((target: string, options: { name?: string; repo: string; copy?: boolean }) => {
+    try {
+      let url = target;
+      let name = options.name;
+      let slug: string | undefined;
+      let description = "Inspectable desktop app and macOS DMG generated with appbun.";
+
+      if (!looksLikeUrl(target)) {
+        const recipe = findAppRecipe(target);
+        if (!recipe) {
+          throw new Error(`Unknown recipe or URL: ${target}. Pass a full https:// URL or a known recipe slug.`);
+        }
+        url = recipe.url;
+        name = name ?? recipe.name;
+        slug = recipe.slug;
+        description = recipe.description;
+      }
+
+      name = (name ?? new URL(url).hostname.replace(/^www\./, "")).trim();
+      const builderUrl = `https://github.com/${options.repo}/issues/new?template=build-app.yml&url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+      const screenshotUrl = slug
+        ? `https://raw.githubusercontent.com/${options.repo}/main/docs/screenshots/${slug}.png`
+        : undefined;
+      const buildCommand = `npx -y appbun@latest ${slug ?? `${url} --name ${shellQuote(name)}`} --dmg`;
+      const badge = `[![Built with appbun](https://img.shields.io/badge/Built%20with-appbun-111111?logo=apple&logoColor=white)](https://github.com/${options.repo})`;
+      const screenshotLines = screenshotUrl
+        ? [`![${name} appbun preview](${screenshotUrl})`, ""]
+        : [];
+      const card = [
+        `### ${name} desktop app`,
+        "",
+        badge,
+        "",
+        ...screenshotLines,
+        description,
+        "",
+        "```bash",
+        buildCommand,
+        "```",
+        "",
+        `[Build this app online](${builderUrl})`,
+      ].filter((line): line is string => line !== undefined).join("\n");
+
+      if (options.copy) {
+        copyToClipboard(card);
+        console.log(pc.bold(pc.green("copied")), "showcase markdown copied to clipboard");
+        console.log("");
+      }
+
+      console.log(card);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(pc.bold(pc.red("error")), message);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command("mcp")
   .description("Run appbun as a Model Context Protocol (MCP) server over stdio for AI agents.")
   .addHelpText(
@@ -615,6 +689,7 @@ Commands:
   dev      Detect a local web app and scaffold it.
   skill    Show or install the bundled Codex skill.
   badge    Print a "Get the desktop app" markdown badge.
+  showcase Print a share-ready app card, image, badge, and build command.
   mcp      Run appbun as an MCP server for AI agents.
 
 Run "appbun <command> --help" to see examples and titlebar presets.
@@ -677,6 +752,14 @@ function looksLikeUrl(value?: string): boolean {
   }
 
   return /^https?:\/\//i.test(value);
+}
+
+function shellQuote(value: string): string {
+  if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(value)) {
+    return value;
+  }
+
+  return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
 function shouldDefaultToCreate(value?: string): boolean {

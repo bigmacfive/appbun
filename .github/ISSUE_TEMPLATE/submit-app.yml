@@ -1,0 +1,63 @@
+name: I built an app with appbun
+description: Submit your appbun build for the community gallery.
+title: "gallery: "
+labels:
+  - gallery-submit
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Built something useful with appbun? Share it here and the gallery workflow can turn it into a community card.
+
+        Great submissions include a public URL, a short description, and either a source repo or a screenshot.
+  - type: input
+    id: name
+    attributes:
+      label: App name
+      placeholder: My Dashboard
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: App URL
+      description: The website or localhost app URL you wrapped.
+      placeholder: https://example.com/
+    validations:
+      required: true
+  - type: input
+    id: builder
+    attributes:
+      label: Builder name
+      description: GitHub username, team name, or display name.
+      placeholder: "@yourname"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What did you build?
+      description: One or two sentences for the gallery card.
+      placeholder: A focused desktop wrapper for my team's internal dashboard.
+    validations:
+      required: true
+  - type: input
+    id: repository
+    attributes:
+      label: Source repo or writeup
+      description: Optional public repository, article, or release link.
+      placeholder: https://github.com/you/your-app
+  - type: input
+    id: screenshot
+    attributes:
+      label: Screenshot URL
+      description: Optional public image URL for the gallery.
+      placeholder: https://...
+  - type: textarea
+    id: command
+    attributes:
+      label: Build command
+      description: The command someone can run to recreate it.
+      value: npx -y appbun@latest https://example.com --name "My App" --dmg
+    validations:
+      required: true

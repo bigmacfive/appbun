@@ -1,0 +1,45 @@
+name: Community gallery submission
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  gallery-pr:
+    if: contains(github.event.issue.labels.*.name, 'gallery-submit')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add community build
+        run: node scripts/add-community-build.mjs
+
+      - name: Create gallery pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          if git diff --quiet -- docs/showcase/community-builds.json; then
+            gh issue comment "$ISSUE_NUMBER" --body "This app is already in the community gallery list."
+            exit 0
+          fi
+
+          branch="community-gallery/issue-${ISSUE_NUMBER}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add docs/showcase/community-builds.json
+          git commit -m "Add community gallery submission #${ISSUE_NUMBER}"
+          git push --set-upstream origin "$branch"
+          pr_url=$(gh pr create \
+            --title "Add community gallery submission #${ISSUE_NUMBER}" \
+            --body "Adds a community gallery card from #${ISSUE_NUMBER}: ${ISSUE_TITLE}" \
+            --base main \
+            --head "$branch")
+          gh issue comment "$ISSUE_NUMBER" --body "Thanks. I opened a gallery PR: ${pr_url}"

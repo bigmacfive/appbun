@@ -271,6 +271,10 @@ describe("generator", () => {
     expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:windows": "node scripts/build-platform.mjs windows"');
     expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:dmg:notarized"');
     expect(files.find((file) => file.path === "README.md")?.content).toContain("Build A DMG");
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("Built with appbun");
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("Build This App Yourself");
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("npx -y appbun@latest https://example.com/ --name \"Example\" --dmg");
+    expect(files.find((file) => file.path === "README.md")?.content).toContain("npx -y appbun@latest badge https://example.com/ --name \"Example\"");
     expect(files.find((file) => file.path === "README.md")?.content).toContain("APPLE_SIGN_IDENTITY");
     expect(files.find((file) => file.path === "README.md")?.content).toContain("Notarize A DMG");
     expect(files.find((file) => file.path === "README.md")?.content).toContain("Passkeys And SSO");
