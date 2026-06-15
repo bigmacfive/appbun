@@ -5,10 +5,11 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { resolveAppConfig, writeProject } from "./generator.js";
 import { createFallbackSiteMetadata, fetchSiteMetadata } from "./metadata.js";
 import { appRecipes, findAppRecipe, listRecipeConcepts, searchAppRecipes } from "./recipes.js";
-import type { CreateCommandOptions, TitlebarStyle } from "./types.js";
+import type { BrowserEngineOption, CreateCommandOptions, TitlebarStyle } from "./types.js";
 import { getAppbunVersion } from "./version.js";
 
 const TITLEBARS: TitlebarStyle[] = ["system", "unified", "compact", "minimal"];
+const BROWSER_ENGINES: BrowserEngineOption[] = ["auto", "native", "cef"];
 
 function looksLikeUrl(value: string): boolean {
   return /^https?:\/\/\S+$/i.test(value.trim());
@@ -22,6 +23,7 @@ interface CreateInput {
   themeColor?: string;
   width?: number;
   height?: number;
+  browserEngine?: BrowserEngineOption;
   icon?: boolean;
 }
 
@@ -51,10 +53,15 @@ async function createProjectHeadless(input: CreateInput) {
     recipeDefaults.titlebar = recipe.titlebar;
     recipeDefaults.width = recipe.width;
     recipeDefaults.height = recipe.height;
+    recipeDefaults.browserEngine = recipe.browserEngine;
+    recipeDefaults.compatibilityNotes = recipe.compatibilityNotes;
   }
 
   if (input.titlebar && !TITLEBARS.includes(input.titlebar)) {
     throw new Error(`Invalid titlebar: ${input.titlebar}. Use one of ${TITLEBARS.join(", ")}.`);
+  }
+  if (input.browserEngine && !BROWSER_ENGINES.includes(input.browserEngine)) {
+    throw new Error(`Invalid browserEngine: ${input.browserEngine}. Use one of ${BROWSER_ENGINES.join(", ")}.`);
   }
 
   const options: CreateCommandOptions = {
@@ -66,6 +73,8 @@ async function createProjectHeadless(input: CreateInput) {
     width: input.width ?? recipeDefaults.width ?? 1440,
     height: input.height ?? recipeDefaults.height ?? 900,
     packageManager: "bun",
+    browserEngine: input.browserEngine ?? recipeDefaults.browserEngine ?? "auto",
+    compatibilityNotes: recipeDefaults.compatibilityNotes,
     install: false,
     dmg: false,
     icon: input.icon !== false,
@@ -109,6 +118,7 @@ const TOOLS = [
         themeColor: { type: "string", description: "Accent color hex, e.g. #2563eb." },
         width: { type: "number", description: "Window width in pixels." },
         height: { type: "number", description: "Window height in pixels." },
+        browserEngine: { type: "string", enum: BROWSER_ENGINES, description: "Renderer engine. Use cef for sites that require Chromium." },
         icon: { type: "boolean", description: "Set false to skip icon extraction. Defaults true." },
       },
       required: ["target"],

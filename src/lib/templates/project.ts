@@ -48,6 +48,10 @@ function generatedManifest(config: ResolvedAppConfig, icons: PreparedIconAssets)
       height: config.height,
     },
     packageManager: config.packageManager,
+    browser: {
+      engine: config.browserEngine,
+      compatibilityNotes: config.compatibilityNotes,
+    },
     icon: {
       sourceUrl: icons.sourceUrl,
       png: icons.png,
@@ -167,37 +171,47 @@ function generatedElectrobunConfig(config: ResolvedAppConfig, icons: PreparedIco
     copyEntries[icons.png] = "views/mainview/icon.png";
   }
 
+  const rendererConfig = config.browserEngine === "cef"
+    ? `
+      bundleCEF: true,
+      defaultRenderer: "cef",
+      chromiumFlags: {
+        "user-agent": ${JSON.stringify(chromeDesktopUserAgent())},
+      },`
+    : `
+      bundleCEF: false,`;
+
   const macConfig = icons.macIconset
     ? `
     mac: {
-      bundleCEF: false,
+      ${rendererConfig}
       icons: ${JSON.stringify(icons.macIconset)},
     },`
     : `
     mac: {
-      bundleCEF: false,
+      ${rendererConfig}
     },`;
 
   const winConfig = icons.ico
     ? `
     win: {
-      bundleCEF: false,
+      ${rendererConfig}
       icon: ${JSON.stringify(icons.ico)},
     },`
     : `
     win: {
-      bundleCEF: false,
+      ${rendererConfig}
     },`;
 
   const linuxConfig = icons.png
     ? `
     linux: {
-      bundleCEF: false,
+      ${rendererConfig}
       icon: ${JSON.stringify(icons.png)},
     },`
     : `
     linux: {
-      bundleCEF: false,
+      ${rendererConfig}
     },`;
 
   return `import type { ElectrobunConfig } from "electrobun";
@@ -218,6 +232,10 @@ export default {
   },
 } satisfies ElectrobunConfig;
 `;
+}
+
+function chromeDesktopUserAgent(): string {
+  return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 }
 
 function generatedReadme(config: ResolvedAppConfig, icons: PreparedIconAssets): string {
@@ -320,9 +338,17 @@ This project includes \`.github/workflows/release.yml\`. Add \`APPLE_SIGN_IDENTI
 - Source URL: [${config.url}](${config.url})
 - Theme color: \`${config.themeColor}\`
 - Titlebar preset: \`${config.titlebar}\`
+- Browser engine: \`${config.browserEngine}\`
 - Window size: \`${config.width}x${config.height}\`
 - Icon source: ${icons.sourceUrl ? `[${icons.sourceUrl}](${icons.sourceUrl})` : "not resolved"}
 - Generated manifest: \`appbun.generated.json\`
+${config.browserEngine === "cef" ? `
+## Browser Compatibility
+
+This project is configured to use CEF/Chromium instead of the native system webview. That makes browser-sniffing sites such as YouTube Music more likely to load normally, at the cost of a larger app bundle.
+
+${config.compatibilityNotes.map((note) => `- ${note}`).join("\n")}
+` : ""}
 
 ## Passkeys And SSO
 

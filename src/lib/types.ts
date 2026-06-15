@@ -1,5 +1,7 @@
 export type PackageManager = "bun" | "npm";
 export type TitlebarStyle = "system" | "unified" | "compact" | "minimal";
+export type BrowserEngine = "native" | "cef";
+export type BrowserEngineOption = BrowserEngine | "auto";
 
 export type IconFormat = "png" | "svg" | "ico";
 
@@ -14,6 +16,8 @@ export interface CreateCommandOptions {
   width: number;
   height: number;
   packageManager: PackageManager;
+  browserEngine?: BrowserEngineOption;
+  compatibilityNotes?: string[];
   install: boolean;
   dmg: boolean;
   icon?: boolean;
@@ -66,6 +70,8 @@ export interface ResolvedAppConfig {
   width: number;
   height: number;
   packageManager: PackageManager;
+  browserEngine: BrowserEngine;
+  compatibilityNotes: string[];
 }
 
 export interface GeneratedFile {

@@ -50,6 +50,7 @@ npx -y appbun@latest mcp
 | 공개 사이트 앱으로 만들기 | `appbun https://example.com --name Example` | 수정 가능한 데스크톱 wrapper 프로젝트 |
 | 로컬 프론트엔드 앱으로 만들기 | `appbun dev --name "My App"` | 흔한 localhost 포트 자동 감지 |
 | 생성과 패키징 한 번에 하기 | `appbun https://example.com --name Example --dmg` | 프로젝트와 비서명 macOS DMG |
+| Chromium 요구 사이트 감싸기 | `appbun youtube-music --browser-engine cef` | native webview를 거부하는 사이트용 CEF/Chrome renderer |
 | 개인용 macOS installer 만들기 | `appbun package --dmg` | 생성 프로젝트 안에서 비서명 로컬 DMG 생성 |
 | 서명 배포 준비 | `appbun package --dmg --sign` | `APPLE_SIGN_IDENTITY` 필요 |
 | 노터라이즈 배포 준비 | `appbun package --notarize` | Apple notary 환경변수 사용 |
@@ -144,6 +145,7 @@ appbun https://linear.app --name "Linear Desktop"
 appbun chatgpt --dmg
 appbun github --titlebar compact
 appbun create https://calendar.google.com --name Calendar --width 1600 --height 1000
+appbun youtube-music --browser-engine cef
 ```
 
 ### 탐색

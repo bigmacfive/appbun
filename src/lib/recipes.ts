@@ -9,6 +9,8 @@ export interface AppRecipe {
   height?: number;
   aliases?: string[];
   concepts: string[];
+  browserEngine?: "native" | "cef";
+  compatibilityNotes?: string[];
   /**
    * When true, this app is safe to pre-build and redistribute as a downloadable
    * binary in the gallery (open-source / tool sites with low trademark + ToS
@@ -154,6 +156,8 @@ export const appRecipes: AppRecipe[] = [
     description: "Video streaming and subscriptions",
     themeColor: "#dc2626",
     titlebar: "minimal",
+    browserEngine: "cef",
+    compatibilityNotes: ["Uses CEF because YouTube can show reduced or unsupported browser experiences in native webviews."],
     concepts: ["video", "entertainment", "learning"],
   },
   {
@@ -164,6 +168,8 @@ export const appRecipes: AppRecipe[] = [
     themeColor: "#ef4444",
     titlebar: "minimal",
     aliases: ["ytmusic"],
+    browserEngine: "cef",
+    compatibilityNotes: ["Uses CEF plus a desktop Chrome user agent so YouTube Music does not show the Chrome download screen."],
     concepts: ["music", "audio", "entertainment"],
   },
   {

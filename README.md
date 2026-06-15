@@ -50,6 +50,7 @@ npx -y appbun@latest mcp
 | Package a public site | `appbun https://example.com --name Example` | Editable desktop wrapper project |
 | Package your local frontend | `appbun dev --name "My App"` | Auto-detects common localhost ports |
 | Generate and package in one go | `appbun https://example.com --name Example --dmg` | Project plus unsigned macOS DMG |
+| Wrap Chromium-sniffing sites | `appbun youtube-music --browser-engine cef` | Bundled CEF/Chrome renderer for sites that reject native webviews |
 | Make a personal macOS installer | `appbun package --dmg` | Unsigned local DMG from inside a generated project |
 | Prepare signed distribution | `appbun package --dmg --sign` | Requires `APPLE_SIGN_IDENTITY` |
 | Prepare notarized distribution | `appbun package --notarize` | Uses Apple notary env vars |
@@ -144,6 +145,7 @@ appbun https://linear.app --name "Linear Desktop"
 appbun chatgpt --dmg
 appbun github --titlebar compact
 appbun create https://calendar.google.com --name Calendar --width 1600 --height 1000
+appbun youtube-music --browser-engine cef
 ```
 
 ### Discover

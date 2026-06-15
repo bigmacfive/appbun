@@ -22,7 +22,7 @@ import {
 import { createFallbackSiteMetadata, fetchSiteMetadata } from "./lib/metadata.js";
 import { appRecipes, findAppRecipe, formatConceptTable, formatRecipeTable, listRecipeConcepts, searchAppRecipes } from "./lib/recipes.js";
 import { getBundledClaudeGuidePath, getBundledSkillPath, installClaudeGuide, installCodexSkill } from "./lib/skill.js";
-import type { CreateCommandOptions, TitlebarStyle } from "./lib/types.js";
+import type { BrowserEngineOption, CreateCommandOptions, TitlebarStyle } from "./lib/types.js";
 import { clearDirectoryContents, displayPath, isDirectoryEmpty, suggestAlternativeOutputDirectory } from "./lib/utils.js";
 import { getAppbunVersion } from "./lib/version.js";
 
@@ -32,6 +32,7 @@ const defaultOptions: CreateCommandOptions = {
   height: 900,
   titlebar: "unified",
   packageManager: defaultPackageManager,
+  browserEngine: "auto",
   install: false,
   dmg: false,
   icon: true,
@@ -70,6 +71,7 @@ program
   .option("--width <number>", "window width", parseInteger, defaultOptions.width)
   .option("--height <number>", "window height", parseInteger, defaultOptions.height)
   .option("--package-manager <pm>", "install command for the generated app: bun or npm", defaultOptions.packageManager)
+  .option("--browser-engine <engine>", "renderer engine: auto, native, or cef", parseBrowserEngine, defaultOptions.browserEngine)
   .option("--install", "install generated app dependencies")
   .option("--dmg", "on macOS: install dependencies, build a DMG, and open it")
   .option("--no-icon", "skip fetching and generating icon assets")
@@ -92,6 +94,7 @@ Examples:
   $ appbun create https://calendar.google.com --name Calendar --out-dir ./calendar-app
   $ appbun https://linear.app --package-manager npm --install
   $ appbun create https://chat.openai.com --theme-color #10a37f --titlebar compact --width 1600 --height 1000
+  $ appbun youtube-music --browser-engine cef --dmg
   $ appbun https://chat.openai.com --name ChatGPT --dmg
   $ appbun https://github.com --name GitHub --titlebar system
   $ appbun https://github.com --name GitHub --out-dir ./github --yes
@@ -237,6 +240,7 @@ program
   )
   .option("--width <number>", "window width", parseInteger, defaultOptions.width)
   .option("--height <number>", "window height", parseInteger, defaultOptions.height)
+  .option("--browser-engine <engine>", "renderer engine: auto, native, or cef", parseBrowserEngine, defaultOptions.browserEngine)
   .option("--copy", "copy the generated prompt to the clipboard when supported")
   .option("--quiet", "reduce metadata logs")
   .addHelpText(
@@ -415,9 +419,10 @@ program
   .description("Detect a running local web app and scaffold it as a desktop app.")
   .option("-n, --name <name>", "app display name")
   .option("-o, --out-dir <dir>", "output directory")
+  .option("--browser-engine <engine>", "renderer engine: auto, native, or cef", parseBrowserEngine, defaultOptions.browserEngine)
   .option("-y, --yes", "accept interactive prompts automatically")
   .option("--quiet", "reduce output")
-  .action(async (options: Pick<CreateCommandOptions, "name" | "outDir" | "yes" | "quiet">) => {
+  .action(async (options: Pick<CreateCommandOptions, "name" | "outDir" | "browserEngine" | "yes" | "quiet">) => {
     try {
       const url = await discoverLocalWebApp();
       if (!url) {
@@ -720,6 +725,15 @@ function parseTitlebar(value: string): TitlebarStyle {
   throw new Error(`Invalid titlebar style: ${value}. Use system, unified, compact, or minimal.`);
 }
 
+function parseBrowserEngine(value: string): BrowserEngineOption {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "auto" || normalized === "native" || normalized === "cef") {
+    return normalized;
+  }
+
+  throw new Error(`Invalid browser engine: ${value}. Use auto, native, or cef.`);
+}
+
 function parseDoctorTargetOption(value: string): ReturnType<typeof parseDoctorTarget> {
   try {
     return parseDoctorTarget(value);
@@ -803,6 +817,8 @@ function resolveTargetOptions<T extends Partial<CreateCommandOptions>>(
       name: options.name ?? recipe.name,
       description: options.description ?? recipe.description,
       themeColor: options.themeColor ?? recipe.themeColor,
+      browserEngine: userPassedOption("--browser-engine") ? options.browserEngine : (recipe.browserEngine ?? options.browserEngine),
+      compatibilityNotes: recipe.compatibilityNotes,
       titlebar: userPassedOption("--titlebar") ? options.titlebar : (recipe.titlebar ?? options.titlebar),
       width: userPassedOption("--width") ? options.width : (recipe.width ?? options.width),
       height: userPassedOption("--height") ? options.height : (recipe.height ?? options.height),

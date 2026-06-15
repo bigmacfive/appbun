@@ -22,16 +22,31 @@ import {
 import { prepareIconAssets } from "./icons.js";
 import { renderTemplateFiles as renderGeneratedTemplateFiles } from "./templates/project.js";
 
+const CHROMIUM_REQUIRED_HOSTS = new Map<string, string>([
+  ["music.youtube.com", "Uses CEF plus a desktop Chrome user agent so YouTube Music does not show the Chrome download screen."],
+  ["www.youtube.com", "Uses CEF because YouTube can show reduced or unsupported browser experiences in native webviews."],
+  ["youtube.com", "Uses CEF because YouTube can show reduced or unsupported browser experiences in native webviews."],
+]);
+
 export function resolveAppConfig(url: string, options: CreateCommandOptions, metadata: SiteMetadata): ResolvedAppConfig {
   const normalizedUrl = new URL(url).toString();
+  const parsedUrl = new URL(normalizedUrl);
   const name = options.name?.trim() || metadata.title || deriveNameFromUrl(normalizedUrl);
   const slug = slugify(name);
   const outDir = resolve(options.outDir?.trim() || slug);
   const title = options.title?.trim() || name;
-  const description = options.description?.trim() || metadata.description || `Desktop wrapper for ${new URL(normalizedUrl).hostname}`;
+  const description = options.description?.trim() || metadata.description || `Desktop wrapper for ${parsedUrl.hostname}`;
   const identifier = options.identifier?.trim() || deriveIdentifier(normalizedUrl, slug);
-  const themeColor = normalizeHexColor(options.themeColor) || metadata.themeColor || deriveThemeColor(new URL(normalizedUrl).hostname);
+  const themeColor = normalizeHexColor(options.themeColor) || metadata.themeColor || deriveThemeColor(parsedUrl.hostname);
   const packageName = slug;
+  const hostCompatibilityNote = CHROMIUM_REQUIRED_HOSTS.get(parsedUrl.hostname);
+  const browserEngine = options.browserEngine === "cef" || (options.browserEngine !== "native" && hostCompatibilityNote)
+    ? "cef"
+    : "native";
+  const compatibilityNotes = [
+    ...(options.compatibilityNotes ?? []),
+    ...(hostCompatibilityNote && !(options.compatibilityNotes ?? []).includes(hostCompatibilityNote) ? [hostCompatibilityNote] : []),
+  ];
 
   return {
     name,
@@ -48,6 +63,8 @@ export function resolveAppConfig(url: string, options: CreateCommandOptions, met
     width: options.width,
     height: options.height,
     packageManager: options.packageManager,
+    browserEngine,
+    compatibilityNotes,
   };
 }
 

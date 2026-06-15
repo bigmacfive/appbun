@@ -224,6 +224,34 @@ describe("generator", () => {
     expect(config.packageName).toBe("linear-desktop");
   });
 
+  test("resolveAppConfig enables CEF for Chromium-sniffing sites", () => {
+    const config = resolveAppConfig(
+      "https://music.youtube.com/",
+      {
+        width: 1400,
+        height: 900,
+        packageManager: "bun",
+        browserEngine: "auto",
+        install: false,
+        dmg: false,
+        yes: false,
+        showConfig: false,
+        quiet: true,
+        name: "YouTube Music",
+      },
+      {
+        title: "YouTube Music",
+        description: "Music",
+        themeColor: "#ef4444",
+        sourceUrl: "https://music.youtube.com/",
+        iconCandidates: [],
+      },
+    );
+
+    expect(config.browserEngine).toBe("cef");
+    expect(config.compatibilityNotes.join(" ")).toContain("YouTube Music");
+  });
+
   test("renderTemplateFiles includes electrobun entry", () => {
     const config = resolveAppConfig(
       "https://example.com",
@@ -271,6 +299,7 @@ describe("generator", () => {
     expect(files.find((file) => file.path === "src/bun/index.ts")?.content).toContain("new-window-open");
     expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:windows": "node scripts/build-platform.mjs windows"');
     expect(files.find((file) => file.path === "package.json")?.content).toContain('"build:dmg:notarized"');
+    expect(files.find((file) => file.path === "electrobun.config.ts")?.content).toContain("bundleCEF: false");
     expect(files.find((file) => file.path === "README.md")?.content).toContain("Build A DMG");
     expect(files.find((file) => file.path === "README.md")?.content).toContain("Built with appbun");
     expect(files.find((file) => file.path === "README.md")?.content).toContain("Build This App Yourself");
@@ -287,6 +316,45 @@ describe("generator", () => {
     const manifest = files.find((file) => file.path === "appbun.generated.json")?.content ?? "";
     expect(manifest).toContain('"generator"');
     expect(manifest).toContain(`"version": "${getAppbunVersion()}"`);
+  });
+
+  test("renderTemplateFiles emits CEF config and compatibility docs when requested", () => {
+    const config = resolveAppConfig(
+      "https://music.youtube.com/",
+      {
+        width: 1400,
+        height: 900,
+        packageManager: "bun",
+        browserEngine: "cef",
+        compatibilityNotes: ["Uses CEF plus a desktop Chrome user agent so YouTube Music does not show the Chrome download screen."],
+        install: false,
+        dmg: false,
+        yes: false,
+        showConfig: false,
+        quiet: true,
+        name: "YouTube Music",
+      },
+      {
+        title: "YouTube Music",
+        description: "Music",
+        themeColor: "#ef4444",
+        sourceUrl: "https://music.youtube.com/",
+        iconCandidates: [],
+      },
+    );
+
+    const files = renderTemplateFiles(config, {});
+    const electrobunConfig = files.find((file) => file.path === "electrobun.config.ts")?.content ?? "";
+    const readme = files.find((file) => file.path === "README.md")?.content ?? "";
+    const manifest = files.find((file) => file.path === "appbun.generated.json")?.content ?? "";
+
+    expect(electrobunConfig).toContain("bundleCEF: true");
+    expect(electrobunConfig).toContain('defaultRenderer: "cef"');
+    expect(electrobunConfig).toContain('"user-agent"');
+    expect(electrobunConfig).toContain("Chrome/125.0.0.0");
+    expect(readme).toContain("Browser Compatibility");
+    expect(readme).toContain("YouTube Music");
+    expect(manifest).toContain('"engine": "cef"');
   });
 
   test("system titlebar preset falls back to native chrome", () => {
