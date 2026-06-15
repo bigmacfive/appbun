@@ -71,7 +71,6 @@ export function generatedMainviewHtml(config: ResolvedAppConfig): string {
     ? `
     <header class="topbar electrobun-webkit-app-region-drag" data-titlebar-style="${preset.id}">
       <div class="topbar-brand electrobun-webkit-app-region-no-drag">
-        <img id="site-icon" class="site-icon electrobun-webkit-app-region-no-drag" src="views://mainview/icon.png" alt="" />
         <strong id="site-name" class="electrobun-webkit-app-region-no-drag">${escapeHtml(config.name)}</strong>
       </div>
       <div class="topbar-actions electrobun-webkit-app-region-no-drag" aria-label="App controls">
@@ -161,20 +160,6 @@ body {
   z-index: 2;
 }
 
-.topbar::before {
-  content: "";
-  position: absolute;
-  left: 8px;
-  top: 6px;
-  width: max(54px, calc(var(--shell-toolbar-left) - 18px));
-  height: calc(var(--shell-toolbar-height) - 12px);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.64);
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.42) inset;
-  pointer-events: none;
-}
-
 .topbar-brand,
 .topbar-actions {
   min-width: 0;
@@ -189,19 +174,11 @@ body {
 
 .topbar-brand,
 .topbar-actions,
-.site-icon,
 #site-name,
 .site-origin,
 .icon-button,
 .icon {
   -webkit-app-region: no-drag;
-}
-
-.site-icon {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  flex: 0 0 auto;
 }
 
 #site-name {
@@ -328,20 +305,19 @@ electrobun-webview {
 `;
 }
 
+// Path data from the Lucide icon set: rotate-cw and external-link.
 function toolbarIcon(name: "reload" | "external"): string {
   if (name === "reload") {
-    return `<svg class="icon icon-reload electrobun-webkit-app-region-no-drag" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M20 8a8 8 0 0 0-13.7-3.7" />
-            <path d="M20 4v4h-4" />
-            <path d="M4 16a8 8 0 0 0 13.7 3.7" />
-            <path d="M4 20v-4h4" />
+    return `<svg class="icon icon-reload electrobun-webkit-app-region-no-drag" data-lucide="rotate-cw" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M21 2v6h-6" />
+            <path d="M21 13a9 9 0 1 1-3-6.7L21 8" />
           </svg>`;
   }
 
-  return `<svg class="icon icon-external electrobun-webkit-app-region-no-drag" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M14 4h6v6" />
-            <path d="M10 14 20 4" />
-            <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
+  return `<svg class="icon icon-external electrobun-webkit-app-region-no-drag" data-lucide="external-link" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M15 3h6v6" />
+            <path d="M10 14 21 3" />
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
           </svg>`;
 }
 
@@ -356,14 +332,12 @@ export function generatedMainviewEntry(config: ResolvedAppConfig, icons: Prepare
     themeColor: config.themeColor,
     titlebar: config.titlebar,
     showOrigin: preset.showOrigin,
-    hasIcon: Boolean(icons.png),
     iconSource: icons.sourceUrl,
   }, null, 2)};
 
 const mount = document.getElementById("webview-mount");
 const siteName = document.getElementById("site-name");
 const siteOrigin = document.getElementById("site-origin");
-const siteIcon = document.getElementById("site-icon") as HTMLImageElement | null;
 const reloadButton = document.getElementById("reload-app");
 const openExternalButton = document.getElementById("open-external");
 const shellStatus = document.getElementById("shell-status");
@@ -411,16 +385,6 @@ reloadButton?.addEventListener("click", () => {
 
 openExternalButton?.addEventListener("click", () => {
   window.open(APP_CONFIG.url, "_blank", "noopener,noreferrer");
-});
-
-if (!APP_CONFIG.hasIcon && siteIcon) {
-  console.warn("appbun shell did not receive a usable icon asset");
-  siteIcon.remove();
-}
-
-siteIcon?.addEventListener("error", () => {
-  console.warn("appbun shell icon failed to load", APP_CONFIG.iconSource);
-  siteIcon.remove();
 });
 
 console.log(${JSON.stringify(logMessage)});
