@@ -1,0 +1,45 @@
+name: Deploy gallery page
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy-gallery-page.yml"
+      - "scripts/build-gallery-page.mjs"
+      - "src/lib/recipes.ts"
+      - "docs/screenshots/**"
+      - "docs/showcase/community-builds.json"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.4
+      - uses: actions/configure-pages@v5
+      - run: bun install
+      - name: Generate gallery page
+        env:
+          GALLERY_OWNER_REPO: ${{ github.repository }}
+        run: bun run scripts/build-gallery-page.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./gallery-dist
+      - id: deploy
+        uses: actions/deploy-pages@v4
