@@ -8,77 +8,173 @@ import { chromium } from "playwright";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const tmpDir = resolve(root, "tmp");
-const framesDir = resolve(tmpDir, "terminal-demo-frames");
-const palettePath = resolve(tmpDir, "terminal-demo-palette.png");
-const mp4Path = resolve(tmpDir, "terminal-demo.mp4");
-const gifPath = resolve(root, "docs", "assets", "terminal-demo.gif");
 const width = 1280;
 const height = 720;
 const fps = 18;
-const durationSeconds = 10.8;
-const frameCount = Math.round(fps * durationSeconds);
 
-await rm(framesDir, { recursive: true, force: true });
-await mkdir(framesDir, { recursive: true });
-
-const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({
-  viewport: { width, height },
-  deviceScaleFactor: 1,
-});
-
-await page.setContent(buildHtml(), { waitUntil: "load" });
-
-for (let index = 0; index < frameCount; index += 1) {
-  const time = index / fps;
-  await page.evaluate((value) => {
-    window.renderDemoFrame(value);
-  }, time);
-  await page.screenshot({
-    path: resolve(framesDir, `frame-${String(index).padStart(4, "0")}.png`),
-    type: "png",
-  });
-}
-
-await browser.close();
-
-run("ffmpeg", [
-  "-y",
-  "-framerate",
-  String(fps),
-  "-i",
-  resolve(framesDir, "frame-%04d.png"),
-  "-vf",
-  "format=yuv420p",
-  "-movflags",
-  "+faststart",
-  mp4Path,
-]);
-
-run("ffmpeg", [
-  "-y",
-  "-i",
-  mp4Path,
-  "-vf",
-  "fps=18,scale=1280:-1:flags=lanczos,palettegen=stats_mode=diff",
-  palettePath,
-]);
-
-run("ffmpeg", [
-  "-y",
-  "-i",
-  mp4Path,
-  "-i",
-  palettePath,
-  "-lavfi",
-  "fps=18,scale=1280:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle",
-  "-loop",
-  "0",
-  gifPath,
-]);
+const demos = [
+  {
+    slug: "terminal-demo",
+    command: `appbun dev --name "My App" --dmg --yes`,
+    durationSeconds: 10.8,
+    sideTitle: "Generated output",
+    sideChips: ["Inspectable app code", "Config manifest", "Doctor checks", "macOS DMG"],
+    finalLabel: "My App.dmg",
+    finalMeta: "ready for local install",
+    logs: [
+      { at: 4.1, text: "Detected http://localhost:3000" },
+      { at: 4.55, text: "Resolved metadata: My App" },
+      { at: 5.0, text: "Created ../appbun-output/my-app" },
+      { at: 5.45, text: "Generated fallback icon assets" },
+      { at: 5.95, text: "doctor --project: 6 checks ok" },
+      { at: 6.55, text: "Installed shell dependencies" },
+      { at: 7.25, text: "Built macOS app bundle" },
+      { at: 8.15, text: "Packaged My App.dmg" },
+    ],
+  },
+  {
+    slug: "url-to-code",
+    command: `appbun chatgpt --titlebar compact --yes`,
+    durationSeconds: 7.4,
+    sideTitle: "App code created",
+    sideChips: ["README with badge", "appbun.generated.json", "Editable shell", "Release workflow"],
+    finalLabel: "chatgpt/",
+    finalMeta: "inspectable project",
+    logs: [
+      { at: 3.0, text: "Recipe: chatgpt (ChatGPT)" },
+      { at: 3.45, text: "Fetched title, icon, and theme" },
+      { at: 3.95, text: "Wrote Electrobun shell" },
+      { at: 4.5, text: "Added Built with appbun badge" },
+      { at: 5.1, text: "Generated appbun.generated.json" },
+    ],
+  },
+  {
+    slug: "code-to-dmg",
+    command: `cd chatgpt && bun run build:dmg`,
+    durationSeconds: 7.6,
+    sideTitle: "Package steps",
+    sideChips: ["Build stable app", "Optional codesign", "Create DMG", "Open installer"],
+    finalLabel: "ChatGPT.dmg",
+    finalMeta: "unsigned personal installer",
+    logs: [
+      { at: 2.9, text: "electrobun build --env=stable" },
+      { at: 3.55, text: "Found ChatGPT.app" },
+      { at: 4.15, text: "No APPLE_SIGN_IDENTITY: unsigned mode" },
+      { at: 4.85, text: "hdiutil packaged DMG" },
+      { at: 5.55, text: "build/dmg/ChatGPT.dmg ready" },
+    ],
+  },
+  {
+    slug: "agent-workflow",
+    command: `Codex: package localhost:3000 with appbun`,
+    durationSeconds: 8.2,
+    sideTitle: "Agent workflow",
+    sideChips: ["Detect dev server", "Run appbun create", "Doctor project", "Build DMG"],
+    finalLabel: "localhost app",
+    finalMeta: "Codex-ready desktop build",
+    logs: [
+      { at: 3.25, text: "Codex finds http://localhost:3000" },
+      { at: 3.85, text: "npx -y appbun@latest dev --yes" },
+      { at: 4.45, text: "Generated desktop/my-app" },
+      { at: 5.05, text: "doctor --project: ready" },
+      { at: 5.75, text: "package --dmg: DMG created" },
+    ],
+  },
+];
 
 await rm(tmpDir, { recursive: true, force: true });
-console.log(`rendered ${gifPath}`);
+await mkdir(tmpDir, { recursive: true });
+
+const browser = await chromium.launch({ headless: true });
+
+try {
+  for (const demo of demos) {
+    await renderDemo(browser, demo);
+  }
+} finally {
+  await browser.close();
+  await rm(tmpDir, { recursive: true, force: true });
+}
+
+async function renderDemo(browser, demo) {
+  const framesDir = resolve(tmpDir, `${demo.slug}-frames`);
+  const palettePath = resolve(tmpDir, `${demo.slug}-palette.png`);
+  const mp4Path = resolve(tmpDir, `${demo.slug}.mp4`);
+  const gifPath = resolve(root, "docs", "assets", `${demo.slug}.gif`);
+  const frameCount = Math.round(fps * demo.durationSeconds);
+
+  await rm(framesDir, { recursive: true, force: true });
+  await mkdir(framesDir, { recursive: true });
+
+  const page = await browser.newPage({
+    viewport: { width, height },
+    deviceScaleFactor: 1,
+  });
+
+  try {
+    await page.setContent(buildHtml(demo), { waitUntil: "load" });
+
+    for (let index = 0; index < frameCount; index += 1) {
+      const time = index / fps;
+      await page.evaluate((value) => {
+        window.renderDemoFrame(value);
+      }, time);
+      await page.screenshot({
+        path: resolve(framesDir, `frame-${String(index).padStart(4, "0")}.png`),
+        type: "png",
+      });
+    }
+  } finally {
+    await page.close();
+  }
+
+  run("ffmpeg", [
+    "-y",
+    "-v",
+    "error",
+    "-framerate",
+    String(fps),
+    "-i",
+    resolve(framesDir, "frame-%04d.png"),
+    "-vf",
+    "format=yuv420p",
+    "-movflags",
+    "+faststart",
+    mp4Path,
+  ]);
+
+  run("ffmpeg", [
+    "-y",
+    "-v",
+    "error",
+    "-i",
+    mp4Path,
+    "-vf",
+    "fps=18,scale=1280:-1:flags=lanczos,palettegen=stats_mode=diff",
+    "-frames:v",
+    "1",
+    "-update",
+    "1",
+    palettePath,
+  ]);
+
+  run("ffmpeg", [
+    "-y",
+    "-v",
+    "error",
+    "-i",
+    mp4Path,
+    "-i",
+    palettePath,
+    "-lavfi",
+    "fps=18,scale=1280:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=2:diff_mode=rectangle",
+    "-loop",
+    "0",
+    gifPath,
+  ]);
+
+  console.log(`rendered ${gifPath}`);
+}
 
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -92,19 +188,17 @@ function run(command, args) {
   }
 }
 
-function buildHtml() {
-  const command = `appbun dev --name "My App" --dmg --yes`;
-  const logs = [
-    { at: 4.1, text: "Detected http://localhost:3000" },
-    { at: 4.55, text: "Resolved metadata: My App" },
-    { at: 5.0, text: "Created ../appbun-output/my-app" },
-    { at: 5.45, text: "Generated fallback icon assets" },
-    { at: 5.95, text: "doctor --project: 6 checks ok" },
-    { at: 6.55, text: "Installed shell dependencies" },
-    { at: 7.25, text: "Built macOS app bundle" },
-    { at: 8.15, text: "Packaged My App.dmg" },
-  ];
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
 
+function buildHtml(demo) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -438,21 +532,18 @@ function buildHtml() {
           <div class="prompt">
             <span class="path">~/web-app</span><span class="cash">$</span><span class="cmd" id="typed"></span><span class="cursor" id="cursor"></span>
           </div>
-          <div class="logs" id="logs">${logs.map((log, index) => `<div class="log" data-at="${log.at}" id="log-${index}"><span class="check">✓</span><span>${log.text}</span></div>`).join("")}</div>
+          <div class="logs" id="logs">${demo.logs.map((log, index) => `<div class="log" data-at="${log.at}" id="log-${index}"><span class="check">✓</span><span>${escapeHtml(log.text)}</span></div>`).join("")}</div>
         </section>
         <aside class="side" id="side">
-          <h2>Generated output</h2>
-          <div class="chip">Inspectable app code</div>
-          <div class="chip">Config manifest</div>
-          <div class="chip">Doctor checks</div>
-          <div class="chip">macOS DMG</div>
+          <h2>${escapeHtml(demo.sideTitle)}</h2>
+          ${demo.sideChips.map((chip) => `<div class="chip">${escapeHtml(chip)}</div>`).join("")}
         </aside>
         <div class="final" id="final">
           <div class="file">
             <div class="file-icon"></div>
             <div>
-              <strong>My App.dmg</strong>
-              <span>ready for local install</span>
+              <strong>${escapeHtml(demo.finalLabel)}</strong>
+              <span>${escapeHtml(demo.finalMeta)}</span>
             </div>
           </div>
         </div>
@@ -464,7 +555,7 @@ function buildHtml() {
     </section>
   </main>
   <script>
-    const command = ${JSON.stringify(command)};
+    const command = ${JSON.stringify(demo.command)};
     const typed = document.getElementById("typed");
     const cursor = document.getElementById("cursor");
     const status = document.getElementById("status");
@@ -486,18 +577,22 @@ function buildHtml() {
       cursor.style.setProperty("--cursor-opacity", Math.sin(time * 9) > -0.2 ? "1" : "0");
 
       const running = time > typingEnd + 0.2;
-      status.textContent = time > 9.2 ? "Done" : running ? "Running" : "Ready";
-      side.classList.toggle("show", time > 4.25);
-      final.classList.toggle("show", time > 8.85);
+      const doneAt = ${JSON.stringify(Math.max(0, demo.durationSeconds - 1.4))};
+      const sideAt = ${JSON.stringify(Math.min(4.25, demo.durationSeconds * 0.58))};
+      const finalAt = ${JSON.stringify(Math.max(0, demo.durationSeconds - 1.95))};
+      status.textContent = time > doneAt ? "Done" : running ? "Running" : "Ready";
+      side.classList.toggle("show", time > sideAt);
+      final.classList.toggle("show", time > finalAt);
 
       logs.forEach(({ element, at }) => {
         element.classList.toggle("show", time >= at);
       });
 
-      const progress = time < 3.9
+      const progressEnd = ${JSON.stringify(Math.max(0, demo.durationSeconds - 1.9))};
+      const progress = time < 3.1
         ? 0
-        : time < 8.9
-          ? 8 + easeInOutCubic((time - 3.9) / 5) * 86
+        : time < progressEnd
+          ? 8 + easeInOutCubic((time - 3.1) / Math.max(0.01, progressEnd - 3.1)) * 86
           : 100;
       const rounded = Math.max(0, Math.min(100, Math.round(progress)));
       bar.style.width = rounded + "%";

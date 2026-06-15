@@ -23,3 +23,16 @@ bun run showcase:capture
 ```
 
 The script captures current public entry pages with Playwright and writes framed assets to `docs/screenshots/`.
+
+## Refresh launch GIFs
+
+```bash
+node scripts/render-terminal-demo.mjs
+```
+
+The renderer writes the main README demo plus reusable launch clips to `docs/assets/`:
+
+- `terminal-demo.gif`
+- `url-to-code.gif`
+- `code-to-dmg.gif`
+- `agent-workflow.gif`

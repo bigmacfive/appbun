@@ -18,6 +18,12 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 
 ![appbun terminal demo](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/terminal-demo.gif)
 
+재사용 가능한 런치 클립:
+
+| URL → 앱 코드 | 앱 코드 → DMG | 에이전트 워크플로우 |
+| --- | --- | --- |
+| ![URL to inspectable app code](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/url-to-code.gif) | ![Inspectable app code to DMG](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/code-to-dmg.gif) | ![Codex packages localhost with appbun](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/agent-workflow.gif) |
+
 ## Codex 또는 Claude Code에 바로 주기
 
 Codex는 localhost 앱을 DMG까지 만들 수 있습니다:
@@ -34,6 +40,8 @@ npx -y appbun@latest skill --install
 npx -y appbun@latest skill --install-claude --cwd .
 npx -y appbun@latest mcp
 ```
+
+![Codex appbun workflow](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/agent-workflow.gif)
 
 ## 무엇을 얻나
 

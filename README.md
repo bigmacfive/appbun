@@ -18,6 +18,12 @@ npx -y appbun@latest https://github.com --name "GitHub" --dmg
 
 ![appbun terminal demo](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/terminal-demo.gif)
 
+Reusable launch clips:
+
+| URL → app code | App code → DMG | Agent workflow |
+| --- | --- | --- |
+| ![URL to inspectable app code](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/url-to-code.gif) | ![Inspectable app code to DMG](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/code-to-dmg.gif) | ![Codex packages localhost with appbun](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/agent-workflow.gif) |
+
 ## Give This To Codex Or Claude Code
 
 Codex can turn your localhost app into a DMG:
@@ -34,6 +40,8 @@ npx -y appbun@latest skill --install
 npx -y appbun@latest skill --install-claude --cwd .
 npx -y appbun@latest mcp
 ```
+
+![Codex appbun workflow](https://raw.githubusercontent.com/bigmacfive/appbun/main/docs/assets/agent-workflow.gif)
 
 ## What You Get
 
